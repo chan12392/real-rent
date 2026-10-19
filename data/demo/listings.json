@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "synthetic": true,
+  "note": "직접 만든 연결 규약용 예시. 실제 매물·시세가 아님.",
+  "listings": [
+    {
+      "id": "demo-a",
+      "label": "시연 A",
+      "deposit_krw": 10000000,
+      "monthly_rent_krw": 500000,
+      "monthly_management_krw": 70000,
+      "monthly_utilities_estimate_krw": 50000,
+      "minimum_contract_months": 12,
+      "commute_minutes": 35
+    },
+    {
+      "id": "demo-b",
+      "label": "시연 B",
+      "deposit_krw": 5000000,
+      "monthly_rent_krw": 600000,
+      "monthly_management_krw": 50000,
+      "monthly_utilities_estimate_krw": 50000,
+      "minimum_contract_months": 6,
+      "commute_minutes": 25
+    },
+    {
+      "id": "demo-c",
+      "label": "시연 C · 일부 미확인",
+      "deposit_krw": 10000000,
+      "monthly_rent_krw": 450000,
+      "monthly_management_krw": null,
+      "monthly_utilities_estimate_krw": null,
+      "minimum_contract_months": null,
+      "commute_minutes": 45
+    }
+  ]
+}
