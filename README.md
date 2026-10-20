@@ -34,24 +34,30 @@ real-rent/
 │  └─ src/lib/api.ts         # 화면의 서버 요청
 ├─ backend/                  # Python + FastAPI
 │  ├─ app/api/               # 개발 2 · HTTP API
+│  ├─ app/core/              # 개발 2 · 서버 설정·공통 인프라
+│  ├─ app/schemas/           # 공통 입력·출력 형식, 개발 2가 조율
 │  ├─ app/db/                # 개발 2 · DB 구현 예정
 │  ├─ app/integrations/      # 개발 2 · 외부 API 구현 예정
-│  ├─ app/engine/            # 개발 3 · AI·계산·RAG 구현 예정
+│  ├─ app/engine/            # 개발 3 · 조건 추출·경로 응답 정리·RAG
+│  ├─ app/domain/            # 분석 · 비용 계산·필터·정렬
 │  └─ tests/                 # 서버 자동 검사
 ├─ data/                     # 공통 데이터와 로컬 생성물 위치
-├─ evaluation/               # 분석 1 · 기준·검증 사례·결과
+├─ evaluation/               # 분석 · 기준·검증 사례·결과
+├─ deploy/                   # 개발 2 · 배포 안내와 설정 위치
 └─ docs/                     # API·아키텍처·팀 작업 안내
 ```
 
-| 담당 | 주 작업 경로 | 첫 작업 |
+| 담당 | 주 작업 경로 | 맡은 작업 |
 | --- | --- | --- |
-| 개발 1 · 고객 화면 | `frontend/` | 조건 입력·비교 화면 |
-| 개발 2 · 서버·DB·외부 API | `backend/app/api/`, `db/`, `integrations/` | 공통 데이터 형식과 API |
-| 개발 3 · AI·계산·RAG | `backend/app/engine/` | 비용 계산과 조건 필터 |
-| 분석 1 · 기준·검증 | `evaluation/` | 계산·추천 기준, 수작업 검증 사례 20개 |
-| 전원 | `data/demo/`, `docs/` | 샘플 입력·기능 테스트·발표 자료 |
+| 개발 1 · 화면·발표 | `frontend/`, 발표 자료 | 조건 입력·변경, 주소 확인, 후보 비교, 발표 편집·녹화 |
+| 개발 2 · 서버·DB·배포 | `backend/app/main.py`, `api/`, `core/`, `db/`, `integrations/`, `deploy/` | 서버·DB, 주소·교통 API, 캐시·오류 처리, 배포 |
+| 개발 3 · AI | `backend/app/engine/` | 자연어 조건 추출, 경로 응답 정리, RAG·LangGraph, 추천 이유 |
+| 분석 · 데이터·계산·검증 | `backend/app/domain/`, `data/demo/`, `data/references/`, `evaluation/` | 시연 데이터·근거 문서, 비용 계산·필터·정렬 함수, 검증 취합 |
+| 공통 · 개발 2 조율 | `backend/app/schemas/`, `docs/api.md` | 입력·출력 예시를 합의하고 함께 변경 |
 
 AI 코드는 백엔드 안의 모듈로 시작한다. 독립 서버와 두 번째 저장소는 현재 필요하지 않다.
+계산 함수는 분석 담당자가 구현하고 AI는 그 결과를 사용한다.
+개발 2의 착수 순서와 연결 지점은 [개발 2 작업 안내](docs/development-2.md)를 따른다.
 
 ## 3. 로컬 실행
 

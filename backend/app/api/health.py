@@ -1,14 +1,8 @@
-from typing import Literal
-
 from fastapi import APIRouter
-from pydantic import BaseModel
+
+from app.schemas.health import HealthResponse
 
 router = APIRouter(tags=["health"])
-
-
-class HealthResponse(BaseModel):
-    status: Literal["ok"] = "ok"
-    service: Literal["real-rent-api"] = "real-rent-api"
 
 
 @router.get("/health", response_model=HealthResponse)
