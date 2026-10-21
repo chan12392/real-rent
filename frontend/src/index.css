@@ -10,6 +10,6 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; }
-button { font: inherit; }
-button:focus-visible { outline: 3px solid #102b4c; outline-offset: 4px; }
+button, input, select { font: inherit; }
+:is(button, input, select, a, summary):focus-visible { outline: 3px solid #102b4c; outline-offset: 4px; }
 h1, h2, h3, p { margin: 0; }

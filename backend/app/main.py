@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.comparison import router as comparison_router
 from app.api.health import router as health_router
 from app.core.config import get_cors_origins
 
@@ -14,6 +15,7 @@ def create_app() -> FastAPI:
         allow_headers=["Content-Type"],
     )
     application.include_router(health_router, prefix="/api")
+    application.include_router(comparison_router, prefix="/api")
     return application
 
 

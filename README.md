@@ -3,8 +3,8 @@
 거주 비용·조건·근거를 바탕으로 집을 비교하는 4인 팀 프로젝트.
 화면, 서버, AI와 검증 자료를 **하나의 비공개 저장소**에서 관리한다.
 
-현재는 시작 화면 → 서버 연결 확인까지 실행할 수 있는 초기 구조다.
-비용 계산, 추천, RAG, DB 저장과 외부 API 연동은 아직 구현하지 않았다.
+현재는 **조건 입력 → 서버 계산 → 가상 매물 최대 3개 비교**까지 실행할 수 있는 개발용 구조다.
+회사 2곳·가상 매물 4개·고정 통근값을 사용한다. 실제 매물·교통 조회, AI·RAG와 DB 저장은 아직 없다.
 
 ## 1. 가장 먼저 할 일
 
@@ -30,13 +30,15 @@ real-rent/
 ├─ AGENTS.md                 # 공통 협업 지침
 ├─ .gitignore                # 비밀값·의존성·생성 파일 제외
 ├─ .github/                  # PR·이슈 양식, 자동 검사
+├─ scripts/dev.mjs           # 화면·서버 함께 실행 및 종료
 ├─ frontend/                 # 개발 1 · React + TypeScript
-│  └─ src/lib/api.ts         # 화면의 서버 요청
+│  ├─ src/features/comparison/ # 조건 폼·비교 결과·비교 API
+│  └─ src/lib/api.ts         # 공통 HTTP·시간 초과·응답 검사
 ├─ backend/                  # Python + FastAPI
 │  ├─ app/api/               # 개발 2 · HTTP API
 │  ├─ app/core/              # 개발 2 · 서버 설정·공통 인프라
 │  ├─ app/schemas/           # 공통 입력·출력 형식, 개발 2가 조율
-│  ├─ app/db/                # 개발 2 · DB 구현 예정
+│  ├─ app/db/                # 개발 2 · 시연 JSON 조회, DB 연결 예정
 │  ├─ app/integrations/      # 개발 2 · 외부 API 구현 예정
 │  ├─ app/engine/            # 개발 3 · 조건 추출·경로 응답 정리·RAG
 │  ├─ app/domain/            # 분석 · 비용 계산·필터·정렬
@@ -62,32 +64,33 @@ AI 코드는 백엔드 안의 모듈로 시작한다. 독립 서버와 두 번�
 ## 3. 로컬 실행
 
 필요 도구: Git, Node.js **24.14 이상 25 미만**와 npm, Python **3.12**, [uv](https://docs.astral.sh/uv/getting-started/installation/).
-먼저 위 절차대로 작업 브랜치로 전환한다. 아래 명령은 Windows PowerShell 기준이다.
-이미 `.env`를 만든 경우 복사 단계를 반복해 기존 설정을 덮어쓰지 않는다.
+먼저 위 절차대로 작업 브랜치로 전환한다. **저장소 루트**에서 아래 명령을 실행한다.
+기본 시연에는 API 키나 `.env`가 필요하지 않다. 기존 `.env`는 덮어쓰지 않는다.
 
-**터미널 A · 서버**
-
-```powershell
-cd backend
-uv sync --frozen
-Copy-Item .env.example .env
-uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --env-file .env
-```
-
-API 문서: <http://127.0.0.1:8000/docs>
-
-**터미널 B · 화면** — 저장소 루트에서 시작
-
-```powershell
-cd frontend
-npm ci
-Copy-Item .env.example .env
+```sh
+npm run setup
 npm run dev
 ```
 
-<http://127.0.0.1:5173>에서 **서버 연결 확인**을 누른다.
-화면 → 로컬 프록시 → `GET /api/health`가 연결되면 `real-rent-api에 연결되었습니다.`가 표시된다.
-이 응답은 서버 프로세스 확인용이며 DB나 외부 API의 정상 동작을 보장하지 않는다.
+- 화면: <http://127.0.0.1:5173>
+- API 문서: <http://127.0.0.1:8000/docs>
+- 종료: 실행 터미널에서 `Ctrl+C` 또는 `q` + Enter. 함께 시작한 프로세스만 종료한다.
+- 5173·8000번 포트가 사용 중이면 실행을 중단한다. 기존 서비스를 임의로 종료하지 않는다.
+- `npm run setup`은 처음 또는 의존성 변경 후 실행한다. 개별 실행은 각 폴더의 README를 따른다.
+
+화면에서 **이 조건으로 비교**를 누르면 기본 비용 순서가 D → A → B,
+월 지출은 각각 598,000원·632,000원·712,000원이다. C는 관리비 미확인으로 제외된다.
+우선순위를 시간으로 바꾸면 이전 결과가 지워지고, 다시 비교하면 B → A → D가 된다.
+회사·예산·입주일·출근일·편도 시간·환승 상한을 바꾸어 결과와 제외 사유를 확인한다.
+
+`서버 연결 확인`은 별도의 `/api/health` 검사다. DB나 외부 API의 정상 동작을 보장하지 않는다.
+
+Windows에서 다른 도구에 포함된 Node가 먼저 잡히면 `node -v`로 버전을 확인한다.
+표준 설치 경로에 Node 24가 있다면 현재 터미널에서만 아래처럼 선택할 수 있다.
+
+```powershell
+$env:PATH = 'C:\Program Files\nodejs;' + $env:PATH
+```
 
 ## 4. 변경 확인과 PR
 
@@ -95,6 +98,9 @@ npm run dev
 | --- | --- |
 | `frontend/` | `npm run lint`, `npm run build` |
 | `backend/` | `uv run ruff check app tests`, `uv run python -m pytest` |
+| 저장소 루트 | `npm run test:dev` (포트 충돌 시 기존 서비스 보존) |
+
+루트의 `npm run check`로 위 검사를 한 번에 실행할 수 있다.
 
 ```powershell
 git add <변경한-파일>
@@ -111,7 +117,7 @@ GitHub에서 `main`을 대상으로 PR을 열고 다른 팀원에게 리뷰를 �
 - 제외 목록 파일의 이름은 `.gitignore`다. `.ignore` 파일을 별도로 만들 필요는 없다.
 - `.env.example`, `package-lock.json`, `uv.lock`은 공유한다.
 - 실제 `.env`, `node_modules`, `.venv`, 빌드·캐시·인덱스·원본 개인정보는 공유하지 않는다.
-- `data/demo/listings.json`은 직접 만든 합성 예시이며 현재 API가 자동으로 읽는 데이터는 아니다.
+- `data/demo/listings.json`은 직접 만든 합성 예시이며 API가 요청마다 읽고 형식을 검사한다.
 
 자세한 연결 규약은 [API 문서](docs/api.md), 구조와 배포 시 확인 사항은 [아키텍처](docs/architecture.md),
 하루 작업 방식은 [팀 작업 안내](docs/team-workflow.md)를 참고한다.
