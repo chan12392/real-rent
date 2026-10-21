@@ -1,0 +1,12 @@
+{
+  "name": "real-rent",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.14.0 <25" },
+  "scripts": {
+    "setup": "npm --prefix frontend ci && uv sync --frozen --directory backend",
+    "dev": "node scripts/dev.mjs",
+    "test:dev": "node --test scripts/dev.test.mjs",
+    "check": "npm --prefix frontend run lint && npm --prefix frontend run build && uv run --directory backend ruff check app tests && uv run --directory backend python -m pytest && npm run test:dev"
+  }
+}

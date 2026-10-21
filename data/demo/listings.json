@@ -1,37 +1,61 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "synthetic": true,
-  "note": "직접 만든 연결 규약용 예시. 실제 매물·시세가 아님.",
+  "note": "가상 매물과 고정된 시연 통근값입니다. 실제 매물·시세·교통 조회 결과가 아닙니다.",
+  "offices": [
+    { "id": "seoul-station", "label": "시연 회사 A · 서울역" },
+    { "id": "gangnam-station", "label": "시연 회사 B · 강남역" }
+  ],
   "listings": [
     {
       "id": "demo-a",
       "label": "시연 A",
+      "area": "마포구 · 시연 위치",
+      "available_from": "2026-11-01",
       "deposit_krw": 10000000,
       "monthly_rent_krw": 500000,
       "monthly_management_krw": 70000,
-      "monthly_utilities_estimate_krw": 50000,
-      "minimum_contract_months": 12,
-      "commute_minutes": 35
+      "management_includes": ["공용 전기", "청소"]
     },
     {
       "id": "demo-b",
       "label": "시연 B",
+      "area": "용산구 · 시연 위치",
+      "available_from": "2026-10-25",
       "deposit_krw": 5000000,
       "monthly_rent_krw": 600000,
       "monthly_management_krw": 50000,
-      "monthly_utilities_estimate_krw": 50000,
-      "minimum_contract_months": 6,
-      "commute_minutes": 25
+      "management_includes": ["청소", "인터넷"]
     },
     {
       "id": "demo-c",
       "label": "시연 C · 일부 미확인",
+      "area": "마포구 · 시연 위치",
+      "available_from": "2026-11-01",
       "deposit_krw": 10000000,
       "monthly_rent_krw": 450000,
       "monthly_management_krw": null,
-      "monthly_utilities_estimate_krw": null,
-      "minimum_contract_months": null,
-      "commute_minutes": 45
+      "management_includes": []
+    },
+    {
+      "id": "demo-d",
+      "label": "시연 D",
+      "area": "영등포구 · 시연 위치",
+      "available_from": "2026-11-01",
+      "deposit_krw": 8000000,
+      "monthly_rent_krw": 450000,
+      "monthly_management_krw": 80000,
+      "management_includes": ["공용 전기", "청소", "인터넷"]
     }
+  ],
+  "routes": [
+    { "office_id": "seoul-station", "listing_id": "demo-a", "outbound": { "minutes": 25, "fare_krw": 1500, "transfers": 1, "walk_minutes": 8 }, "inbound": { "minutes": 35, "fare_krw": 1600, "transfers": 1, "walk_minutes": 10 } },
+    { "office_id": "seoul-station", "listing_id": "demo-b", "outbound": { "minutes": 20, "fare_krw": 1550, "transfers": 0, "walk_minutes": 5 }, "inbound": { "minutes": 25, "fare_krw": 1550, "transfers": 0, "walk_minutes": 6 } },
+    { "office_id": "seoul-station", "listing_id": "demo-c", "outbound": { "minutes": 40, "fare_krw": 1600, "transfers": 1, "walk_minutes": 8 }, "inbound": { "minutes": 45, "fare_krw": 1600, "transfers": 1, "walk_minutes": 9 } },
+    { "office_id": "seoul-station", "listing_id": "demo-d", "outbound": { "minutes": 45, "fare_krw": 1700, "transfers": 2, "walk_minutes": 12 }, "inbound": { "minutes": 40, "fare_krw": 1700, "transfers": 1, "walk_minutes": 10 } },
+    { "office_id": "gangnam-station", "listing_id": "demo-a", "outbound": { "minutes": 40, "fare_krw": 1800, "transfers": 2, "walk_minutes": 8 }, "inbound": { "minutes": 45, "fare_krw": 1900, "transfers": 2, "walk_minutes": 10 } },
+    { "office_id": "gangnam-station", "listing_id": "demo-b", "outbound": { "minutes": 65, "fare_krw": 2000, "transfers": 1, "walk_minutes": 5 }, "inbound": { "minutes": 60, "fare_krw": 2000, "transfers": 1, "walk_minutes": 6 } },
+    { "office_id": "gangnam-station", "listing_id": "demo-c", "outbound": null, "inbound": null },
+    { "office_id": "gangnam-station", "listing_id": "demo-d", "outbound": { "minutes": 50, "fare_krw": 2000, "transfers": 2, "walk_minutes": 12 }, "inbound": { "minutes": 55, "fare_krw": 2100, "transfers": 3, "walk_minutes": 10 } }
   ]
 }

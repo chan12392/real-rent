@@ -1,23 +1,24 @@
 # 서버 · 개발 2 / AI · 개발 3 / 계산 · 분석
 
-Python 3.12와 uv를 사용한다. 현재 구현된 API는 `GET /api/health`다.
-DB, 외부 API, 계산 및 RAG 연결은 앞으로 구현한다.
+Python 3.12와 uv를 사용한다. 연결 확인, 시연 목록 조회, 조건별 비교 API를 제공한다.
+시연 JSON으로 비용·필터·정렬을 계산하며 실제 DB·외부 API·RAG는 연결하지 않았다.
 
 ## 실행
 
 저장소 루트에서 작업 브랜치를 먼저 만든다.
-이미 `.env`가 있으면 복사 단계를 건너뛰어 기존 설정을 보존한다.
+화면·서버 함께 실행은 루트에서 `npm run setup`, `npm run dev`를 사용한다. 서버만 실행하려면:
 
 ```powershell
 cd backend
 uv sync --frozen
-Copy-Item .env.example .env
-uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --env-file .env
+uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 - API 문서: <http://127.0.0.1:8000/docs>
 - 연결 확인: <http://127.0.0.1:8000/api/health>
-- 환경 변수는 `.env`에서 읽는다. 예시 파일만 Git에 포함한다.
+- 시연 목록: <http://127.0.0.1:8000/api/demo/catalog>
+- 비교: `POST /api/compare`. `/docs`에서 입력 예시와 응답을 실행할 수 있다.
+- 기본값은 `.env` 없이 실행된다. 별도 설정이 필요하면 `.env.example`을 복사하고 `--env-file .env`를 추가한다.
 
 ## 담당 경로
 
@@ -25,11 +26,11 @@ uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --env-file .en
 | --- | --- | --- |
 | 개발 2 | `app/main.py`, `app/core/` | 앱 조립, 환경 설정과 서버 공통 처리 |
 | 개발 2 | `app/api/` | 요청·응답, 오류와 API 연결 |
-| 개발 2 | `app/db/` | DB 스키마와 저장·조회 |
+| 개발 2 | `app/db/demo.py` | 시연 파일 조회·형식 검사. DB 교체 시 조회 경계 |
 | 개발 2 | `app/integrations/`, `../deploy/` | 주소·교통 API, 캐시·오류 처리, 배포 |
 | 개발 3 | `app/engine/` | 자연어 조건 추출, 경로 응답 정리, RAG·LangGraph와 추천 이유 |
 | 분석 | `app/domain/` | 비용 계산, 필터와 정렬 함수 |
-| 공통 · 개발 2 조율 | `app/schemas/` | 입력·출력 형식, 현재는 `HealthResponse`만 존재 |
+| 공통 · 개발 2 조율 | `app/schemas/` | 연결 확인·조건·매물·왕복 경로·비교 결과 모델 |
 | 공통 | `tests/` | 실제 동작을 확인하는 자동 검사 |
 
 AI는 같은 서버 안의 모듈로 시작한다. 별도 AI 서버나 특정 DB를 미리 요구하지 않는다.
@@ -47,4 +48,5 @@ uv run python -m pytest
 
 새 검사는 담당 모듈에 맞춰 `tests/api/`, `tests/integrations/`, `tests/engine/`,
 `tests/domain/`에 추가한다. 필요한 디렉터리는 첫 테스트와 함께 만든다.
-현재 연결·CORS 검사는 `tests/test_health.py`에 있다.
+현재 연결·CORS 검사는 `tests/test_health.py`, 비교 API·계산·입력 경계·불완전 데이터 검사는
+`tests/test_comparison.py`에 있다. 계산 함수는 HTTP·파일·외부 API 호출 없이 직접 검사할 수 있다.
