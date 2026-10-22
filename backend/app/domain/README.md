@@ -2,6 +2,7 @@
 
 분석 담당자가 합의한 계산식과 판정 기준을 Python 일반 함수로 구현하는 경로다.
 `comparison.py`의 `compare_listings(conditions, data)`가 현재 개발용 계산을 제공한다.
+`extra_costs.py`와 `extra_cost_params.py`는 API·화면 미연결 상태의 부대경비 순수 계산과 주입식 요율표를 제공한다.
 구체적인 판정 규칙은 `docs/api.md`, 합성 입력은 `data/demo/`,
 현재 자동 검사는 `backend/tests/test_comparison.py`에 있다.
 
