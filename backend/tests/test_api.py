@@ -169,6 +169,27 @@ def test_same_dong_and_multiple_explicit_ids_require_clarification(
     assert response.json()["candidates"] == expected_candidates
 
 
+@pytest.mark.parametrize("selected", ["L01", "L02"])
+def test_multiple_ids_can_be_resolved_by_selecting_a_candidate(client, selected):
+    question = "L01 L02 관리비 얼마야?"
+    initial = client.post("/api/ask", json={"question": question}).json()
+    assert initial["status"] == "clarify"
+    assert initial["candidates"] == ["L01", "L02"]
+    response = client.post("/api/ask", json={"question": question, "listing_id": selected})
+    assert response.status_code == 200
+    result = response.json()
+    assert result["status"] == "answered"
+    assert {citation["doc_id"] for citation in result["citations"]} == {selected}
+
+
+def test_multiple_ids_ignore_context_outside_the_candidates(client):
+    result = client.post(
+        "/api/ask", json={"question": "L01 L02 관리비 얼마야?", "listing_id": "L03"}
+    ).json()
+    assert result["status"] == "clarify"
+    assert result["candidates"] == ["L01", "L02"]
+
+
 def test_selected_listing_context_and_korean_id_particles(client):
     context = client.post("/api/ask", json={"question": "관리비 얼마야?", "listing_id": "L08"})
     assert context.status_code == 200

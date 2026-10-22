@@ -80,6 +80,41 @@ def test_parse_contract_multiple_fields_and_partial_current(client):
     assert "round(5*52/12)=22" in candidates["office_days"]["note"]
 
 
+@pytest.mark.parametrize(
+    "message, field",
+    [
+        ("환승 1번은 안 돼", "max_transfers"),
+        ("환승 1회 이상", "max_transfers"),
+        ("환승 1번은 싫어", "max_transfers"),
+        ("환승 없는 건 싫어", "max_transfers"),
+        ("직통은 아니야", "max_transfers"),
+        ("통근 시간은 40분 이상", "max_one_way_minutes"),
+        ("편도 40분 초과", "max_one_way_minutes"),
+        ("40분은 안 돼", "max_one_way_minutes"),
+        ("월 예산 60만원 이상", "monthly_budget_krw"),
+        ("60만원은 안 돼", "monthly_budget_krw"),
+        ("보증금 1000만 이상", "deposit_limit_krw"),
+    ],
+)
+def test_negated_or_lower_bound_limits_ask_instead_of_reversing_meaning(client, message, field):
+    response = client.post("/api/conditions/parse", json={"message": message})
+    assert response.status_code == 200
+    result = response.json()
+    assert result["candidates"] == []
+    assert [question["field"] for question in result["questions"]] == [field]
+    assert result["understood"] is True
+
+
+def test_negated_limit_keeps_an_independent_valid_condition(client):
+    result = client.post(
+        "/api/conditions/parse", json={"message": "월 예산 60만원 환승 1번은 안 돼"}
+    ).json()
+    assert [(candidate["field"], candidate["value"]) for candidate in result["candidates"]] == [
+        ("monthly_budget_krw", 600_000)
+    ]
+    assert [question["field"] for question in result["questions"]] == ["max_transfers"]
+
+
 def test_numberless_intent_and_failed_interpretation(client):
     response = client.post("/api/conditions/parse", json={"message": "월세를 조금 줄이고 싶어"})
     assert response.status_code == 200

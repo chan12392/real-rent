@@ -69,6 +69,8 @@ def fact_fields(question: str) -> list[str]:
 def identify_candidates(question: str, items: list[Listing], listing_id: str | None) -> list[str]:
     named = set(ID_PATTERN.findall(question.upper()))
     if named:
+        if len(named) > 1 and listing_id in named:
+            return [listing_id]
         return sorted(named)
     if listing_id is not None:
         return [listing_id]
