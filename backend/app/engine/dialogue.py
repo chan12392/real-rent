@@ -209,6 +209,18 @@ def _overlaps(span: tuple[int, int], spans: list[tuple[int, int]]) -> bool:
     return any(span[0] < end and start < span[1] for start, end in spans)
 
 
+def _unsupported_limit_suffix(message: str, end: int) -> bool:
+    suffix = re.split(
+        rf"[,，.;!?。\n]|{_MONEY_LABEL}|환승|편도|통근|출근|입주|거주",
+        message[end:],
+        maxsplit=1,
+    )[0]
+    # shortcut: 지정한 후행 부정·하한 문구만 거르며, 지원 문법 확장 시 함께 갱신한다.
+    return re.search(
+        r"이상|초과|미만|넘|안\s*(?:돼|되|해|함)|않|싫|아니|말고|불가|금지|제외", suffix
+    ) is not None
+
+
 def _parse_money(message: str, found: _Collector) -> None:
     labelled = []
     for match in _LABELLED_MONEY.finditer(message):
@@ -219,6 +231,9 @@ def _parse_money(message: str, found: _Collector) -> None:
         labelled.append(match.span())
         label = match["label"]
         field = "deposit_limit_krw" if label == "보증금" else "monthly_budget_krw"
+        if _unsupported_limit_suffix(message, match.end()):
+            found.question(field, "부정·하한 표현을 상한으로 해석할 수 없습니다.")
+            continue
         try:
             amount, unitless = _money(match["amount"])
         except ValueError:
@@ -247,6 +262,9 @@ def _parse_money(message: str, found: _Collector) -> None:
             continue
         suffix = re.match(r"\s*(?:이하|이내|까지|안쪽)", message[match.end() :])
         if not re.search(r"[조억천백십만원]", match[0]) and suffix is None:
+            continue
+        if _unsupported_limit_suffix(message, match.end()):
+            found.question("monthly_budget_krw", "부정·하한 표현을 상한으로 해석할 수 없습니다.")
             continue
         try:
             amount, unitless = _money(match[0])
@@ -345,14 +363,23 @@ def parse_conditions(
     for match in re.finditer(
         rf"(?:편도\s*)?(?P<minutes>{_NUMBER})\s*분(?:\s*(?:이내|안쪽|이하|까지))?", message
     ):
+        if _unsupported_limit_suffix(message, match.end()):
+            found.question("max_one_way_minutes", "부정·하한 표현을 상한으로 해석할 수 없습니다.")
+            continue
         found.integer("max_one_way_minutes", _decimal(match["minutes"]), match[0], 1)
     for match in re.finditer(
         rf"환승\s*(?:은|는|이|을)?\s*(?P<count>{_NUMBER})\s*(?:번|회)"
         r"(?:\s*(?:이하|이내|까지))?",
         message,
     ):
+        if _unsupported_limit_suffix(message, match.end()):
+            found.question("max_transfers", "부정·하한 표현을 상한으로 해석할 수 없습니다.")
+            continue
         found.integer("max_transfers", _decimal(match["count"]), match[0], 0)
     for match in re.finditer(r"환승\s*(?:없이|없음|없는)|직통", message):
+        if _unsupported_limit_suffix(message, match.end()):
+            found.question("max_transfers", "부정·하한 표현을 상한으로 해석할 수 없습니다.")
+            continue
         found.add("max_transfers", 0, match[0])
 
     for match in re.finditer(

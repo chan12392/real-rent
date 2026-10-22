@@ -38,4 +38,3 @@ export function legText(r: CompareResult): string {
   if (rt == null || !o || !b) return '경로 없음'
   return `왕복 ${rt}분 · 환승 ${o.transfers}+${b.transfers}회`
 }
-
