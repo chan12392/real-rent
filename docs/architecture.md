@@ -62,3 +62,11 @@ deploy/      배포 안내와 설정 위치
 
 현재 배포는 수행하지 않았다. 인증, 영속 저장, 외부 서비스 연결 후에는 별도 운영 검증이 필요하다.
 개발 2의 실행·확인 항목은 [배포 안내](../deploy/README.md)에 정리한다.
+
+## 작업 브랜치의 탐색 시제품
+
+기본 React 화면은 `features/explore/ExplorePage`다. `/api/explore` →
+LangGraph `extract`/`respond` → `domain/explore.evaluate_home` → 합성 매물 12개 전체 판정으로 연결한다.
+기존 비교 컴포넌트는 `/?view=legacy`에서 제공한다. 조건·대화 상태는 브라우저 localStorage에만
+저장하고 요청마다 서버에 전달한다. LangGraph에 사용자 공용 체크포인터를 두지 않는다.
+규칙 추출·정형 답변이며 LLM/RAG 서비스가 아니다. 자세한 범위는 `docs/explore-prototype.md`를 따른다.

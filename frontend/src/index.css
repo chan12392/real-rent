@@ -1,15 +1,31 @@
 :root {
-  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
-  color: #102b4c;
-  background: #f3f8fa;
+  font-family: Arial, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  color: #333333;
+  background: #faf8ef;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-button, input, select { font: inherit; }
-:is(button, input, select, a, summary):focus-visible { outline: 3px solid #102b4c; outline-offset: 4px; }
-h1, h2, h3, p { margin: 0; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 360px;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+:is(button, input, select, a, summary):focus-visible {
+  outline: 3px solid #32654d;
+  outline-offset: 4px;
+}

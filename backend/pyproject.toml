@@ -5,6 +5,7 @@ description = "REAL RENT API and internal comparison engine"
 requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115,<1.0",
+  "langgraph>=1.2.16",
   "uvicorn[standard]>=0.30,<1.0",
 ]
 

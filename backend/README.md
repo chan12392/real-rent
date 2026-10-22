@@ -50,3 +50,10 @@ uv run python -m pytest
 `tests/domain/`에 추가한다. 필요한 디렉터리는 첫 테스트와 함께 만든다.
 현재 연결·CORS 검사는 `tests/test_health.py`, 비교 API·계산·입력 경계·불완전 데이터 검사는
 `tests/test_comparison.py`에 있다. 계산 함수는 HTTP·파일·외부 API 호출 없이 직접 검사할 수 있다.
+
+## 대화·지도 시제품 추가
+
+`POST /api/explore`는 `engine/explore.py`의 LangGraph 규칙 기반 대화 흐름과
+`domain/explore.py`의 개별 매물 판정을 연결한다. LLM/API 키가 필요하지 않다.
+입출력은 `schemas/explore.py`, 합성 데이터는 `data/demo/explore.json`,
+자동 검사는 `tests/test_explore.py`다. 기존 비교 API는 유지한다.
