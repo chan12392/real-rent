@@ -1,0 +1,56 @@
+/* 오리지널 마스코트 보금이 스킨(기본). 이미지 7장은 public/skins/bogeum/ 에 두고, 하나라도 없으면 렌티로 대체한다. */
+.mascot-wrap {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+  width: 100%;
+}
+.mascot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+.mascot-body {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 100%;
+  will-change: transform;
+}
+.mascot-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+}
+.mascot-credit {
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--ink-soft, #52605a);
+  text-align: center;
+}
+
+/* 마스코트가 서 있는 풀밭 그림자. 몸(.mascot-body)보다 먼저 그려져 뒤에 깔린다. */
+.mascot::before {
+  content: '';
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  bottom: 1%;
+  height: 9%;
+  border-radius: 50%;
+  background: var(--grass, #cfe8b4);
+  border: 2px solid var(--line, #5b3a29);
+}
+
+/* 데스크톱: 1024 캔버스의 여백이 커서 캐릭터가 작아 보인다. 모든 레이어에 같은 변환을 줘 크로스페이드가 겹쳐 있게 한다.
+   (몸 전체 변환은 모션 장치가 쓰므로 이미지 레이어에 준다.) 발 아래 풀밭 그림자 쪽을 기준점으로 키운다. */
+@media (min-width: 901px) {
+  .mascot-layer {
+    transform: scale(1.5);
+    transform-origin: 50% 72%;
+  }
+}

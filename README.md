@@ -3,8 +3,13 @@
 거주 비용·조건·근거를 바탕으로 집을 비교하는 4인 팀 프로젝트.
 화면, 서버, AI와 검증 자료를 **하나의 비공개 저장소**에서 관리한다.
 
-현재는 시작 화면 → 서버 연결 확인까지 실행할 수 있는 초기 구조다.
-비용 계산, 추천, RAG, DB 저장과 외부 API 연동은 아직 구현하지 않았다.
+현재는 **합성 매물 12건으로 동작하는 시연 제품**이다: 조건 입력 → 통과·탈락·판단 불가·경로 실패 판정 →
+월 지출(월세+관리비+통근비)·초기 현금·거주 기간 지출 → 추천 TOP 3 → 위치 보기 → 문서 근거 질문.
+
+- 매물·가격·좌표·교통은 모두 가정값이다(`data/demo/*.csv`). 실거래·교통 API, DB, LLM은 연결하지 않았다.
+- 계산 규칙은 팀 승인 전 요구사항 초안 기준이며, 화면 하단과 API 응답 `assumptions`에 가정을 표시한다.
+- 근거 질문은 LLM 없이 문서 검색 + 규칙 답변이다. 점수 4축은 미확정 시안이며 거주성은 데이터가 없다.
+- 규약: [docs/api.md](docs/api.md). 서버 검증 기록: `backend/validation/`.
 
 ## 1. 가장 먼저 할 일
 
@@ -79,9 +84,38 @@ Copy-Item .env.example .env
 npm run dev
 ```
 
-<http://127.0.0.1:5173>에서 **서버 연결 확인**을 누른다.
-화면 → 로컬 프록시 → `GET /api/health`가 연결되면 `real-rent-api에 연결되었습니다.`가 표시된다.
-이 응답은 서버 프로세스 확인용이며 DB나 외부 API의 정상 동작을 보장하지 않는다.
+<http://127.0.0.1:5173>을 열면 기본 조건으로 비교 결과가 바로 표시된다. 서버가 꺼져 있으면 오류 상태가 따로 표시된다.
+
+## 발표용 로컬 실행
+
+5분 시연 순서와 실패 대처는 [docs/demo-script.md](docs/demo-script.md), 수용 테스트 근거는 [docs/acceptance.md](docs/acceptance.md),
+지연 측정은 [docs/latency.md](docs/latency.md)에 있다. 아래는 Windows PowerShell 기준이며 저장소 루트에서 시작한다.
+
+```powershell
+# 터미널 A · 서버 (처음 한 번: uv sync --frozen)
+cd backend
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+# 터미널 B · 화면 (처음 한 번: npm ci)
+cd frontend
+npm run dev
+```
+
+<http://127.0.0.1:5173>을 연다. 기본 캐릭터는 오리지널 마스코트 보금이이고 `?skin=renti`를 붙이면 코드로 그린 캐릭터 렌티로 바뀐다.
+외부 CDN·웹폰트에 의존하지 않아 설치가 끝난 PC에서는 인터넷 없이 돌아간다. 시연 전 점검:
+
+```powershell
+cd frontend
+node scripts/check-chat.ts                                              # 대화 로직 24개 검사
+node scripts/measure-latency.mjs --base http://127.0.0.1:5173 --n 30   # 지연 측정(서버 두 개를 띄운 상태)
+node scripts/acceptance-probe.mjs --base http://127.0.0.1:5173         # 수용 테스트 브라우저 확인
+```
+
+두 `.mjs` 스크립트는 `package.json`을 바꾸지 않고 npx 캐시의 `playwright-core`를 찾아 쓴다. 없으면 `--playwright <playwright-core 폴더>`로 지정한다.
+결과 파일은 `--out` 폴더(예: `.playwright-mcp/d5-qa`, 미추적)에 저장된다.
+
+- **보금이는 이 팀의 오리지널 캐릭터(AI 생성 시안)이다.** 이미지는 `frontend/public/skins/bogeum/*.png`에 두며, 생성 도구 이용약관상 권리 귀속은 ‘확인 필요’다([에셋 기록](docs/assets/character-asset-log.md)). 이미지가 하나라도 없으면 렌티로 대체된다.
+- 매물·가격은 모두 합성 시연 데이터, 의미 판단은 규칙 기반(LLM 미사용)이다. 측정 수치는 로컬 루프백 값이다.
 
 ## 4. 변경 확인과 PR
 

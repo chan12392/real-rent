@@ -1,0 +1,55 @@
+/* 렌티 캐릭터: 색은 index.css :root 토큰을 따르고, 토큰이 없을 때를 위한 기본값을 둔다. */
+.renti {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.renti .renti-shadow { fill: rgba(23, 38, 31, 0.14); }
+.renti .renti-body { fill: var(--brand-2, #176b5c); stroke: var(--ink, #17261f); stroke-width: 3; }
+.renti .renti-door { fill: var(--accent, #d9891a); stroke: var(--ink, #17261f); stroke-width: 2.5; stroke-linejoin: round; }
+.renti .renti-ink { fill: var(--ink, #17261f); }
+.renti .renti-face { fill: var(--card, #fffdf8); stroke: var(--ink, #17261f); stroke-width: 3; }
+.renti .renti-chimney { fill: var(--accent, #d9891a); stroke: var(--ink, #17261f); stroke-width: 3; }
+.renti .renti-roof { fill: var(--brand, #0e4a40); stroke: var(--ink, #17261f); stroke-width: 3; stroke-linejoin: round; }
+.renti .renti-glow { fill: #ffd48a; }
+.renti .renti-window { fill: #fff3cf; stroke: var(--ink, #17261f); stroke-width: 2.5; }
+.renti .renti-window-frame { fill: none; stroke: var(--ink, #17261f); stroke-width: 2; stroke-linecap: round; }
+.renti .renti-puff { fill: var(--card, #fffdf8); stroke: var(--ink, #17261f); stroke-width: 2; }
+.renti .renti-cheek { fill: #f19a7c; }
+.renti .renti-brow { fill: none; stroke: var(--ink, #17261f); stroke-width: 3.4; stroke-linecap: round; }
+.renti .renti-eye { fill: var(--ink, #17261f); stroke: var(--ink, #17261f); stroke-width: 2.2; stroke-linejoin: round; }
+.renti .renti-shine { fill: #fff; }
+.renti .renti-mouth { fill: #8a3b2e; stroke: var(--ink, #17261f); stroke-width: 2.6; stroke-linejoin: round; stroke-linecap: round; }
+.renti .renti-sweat { fill: #a9dcef; stroke: var(--ink, #17261f); stroke-width: 1.8; }
+.renti .renti-sparkle { fill: var(--accent, #d9891a); }
+
+/* ───── ?lab=character 확인 화면 ───── */
+.char-lab { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+.char-lab h1 { font-size: 24px; letter-spacing: -0.01em; }
+.char-lab .char-lab-note { color: var(--ink-soft, #52605a); font-size: 14px; margin-top: 6px; }
+.char-lab-grid { display: grid; grid-template-columns: minmax(0, 340px) minmax(0, 1fr); gap: 24px; margin-top: 20px; align-items: start; }
+@media (max-width: 760px) { .char-lab-grid { grid-template-columns: minmax(0, 1fr); } }
+.char-lab-stage {
+  background: var(--card, #fffdf8); border: 1px solid var(--line, #ddd5c4); border-radius: 18px; padding: 24px 28px 16px;
+}
+.char-lab-stage figcaption { text-align: center; font-size: 14px; color: var(--ink-soft, #52605a); margin-top: 8px; }
+.char-lab-controls { display: grid; gap: 18px; }
+.char-lab-controls fieldset { border: 1px solid var(--line, #ddd5c4); border-radius: 12px; padding: 12px 14px; margin: 0; }
+.char-lab-controls legend { font-weight: 700; font-size: 14px; padding: 0 4px; }
+.char-lab-exprs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 480px) { .char-lab-exprs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.char-lab button {
+  border: 1.5px solid #c9bfa8; background: #fff; border-radius: 10px; padding: 8px 10px; font-weight: 700; font-size: 14px;
+}
+.char-lab button[aria-pressed='true'] { background: var(--brand, #0e4a40); border-color: var(--brand, #0e4a40); color: #fff; }
+.char-lab .char-lab-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.char-lab select, .char-lab input[type='text'] {
+  padding: 8px 10px; border: 1.5px solid #c9bfa8; border-radius: 10px; background: #fff; font-size: 15px;
+}
+.char-lab input[type='range'] { flex: 1 1 160px; accent-color: var(--brand-2, #176b5c); }
+.char-lab .char-lab-radio { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; }
+.char-lab output { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 3.2em; }
+.char-lab pre {
+  background: #f3efe4; border-radius: 10px; padding: 10px 12px; font-size: 12.5px; overflow-x: auto; white-space: pre-wrap;
+}

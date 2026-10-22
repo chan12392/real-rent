@@ -1,15 +1,85 @@
+/* 따뜻한 톤: 크림 바탕 · 갈색 손그림 외곽선 · 볼터치 분홍 · 하늘 · 풀밭. 외부 웹폰트 없이 시스템 한글 글꼴만 쓴다. */
 :root {
-  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
-  color: #102b4c;
-  background: #f3f8fa;
+  /* 바탕·글자 */
+  --paper: #fff8e3;
+  --card: #fffdf5;
+  --ink: #4a2e20; /* 크림 위 대비 11:1 */
+  --ink-soft: #745343; /* 크림 위 대비 6.6:1 */
+  --line: #5b3a29; /* 손그림 외곽선 */
+  --line-soft: #c9ab8f; /* 표 구분선 등 약한 선 */
+  --field: #9c7a62; /* 입력칸 테두리 (흰 바탕 대비 3.9:1) */
+  --shadow: rgba(91, 58, 41, 0.28); /* 오프셋 그림자 */
+
+  /* 팔레트 */
+  --butter: #ffd966; /* 주 버튼 */
+  --mascot-tint: #fbf0c0; /* 마스코트 몸 색, 연한 강조 바탕 */
+  --blush: #f7b5c6; /* 볼터치 */
+  --blush-deep: #c2416b; /* 포커스 링·강조 글자 */
+  --sky: #bfe3f5;
+  --grass: #cfe8b4;
+  --stripe: #fff3cf; /* 표 줄무늬 */
+
+  /* 판정 상태: 색 + 아이콘 + 글자를 함께 쓴다 */
+  --pass: #2f5a16;
+  --pass-bg: #d9eec4;
+  --pass-mark: #5e9e3a;
+  --fail: #a3264a;
+  --fail-bg: #fcdbe4;
+  --fail-mark: #d65a80;
+  --unknown: #6b4a00;
+  --unknown-bg: #ffeba3;
+  --unknown-mark: #e6b422;
+  --route: #544c45;
+  --route-bg: #e7e2da;
+  --route-mark: #8f877e;
+
+  /* 비용 막대 */
+  --c-rent: #8a5a3c;
+  --c-mgmt: #f29bb4;
+  --c-commute: #7cc0e0;
+
+  /* 렌티 캐릭터(character.css)가 쓰는 토큰. 렌티 모양은 그대로 둔다. */
+  --brand: #0e4a40;
+  --brand-2: #176b5c;
+  --accent: #d9891a;
+
+  /* 손그림 모서리: 네 귀퉁이 반경을 조금씩 다르게 */
+  --wobble-lg: 26px 20px 30px 18px / 20px 28px 18px 26px;
+  --wobble-md: 18px 14px 20px 13px / 14px 19px 13px 18px;
+  --wobble-sm: 12px 9px 13px 8px / 9px 12px 8px 12px;
+  --hatch: repeating-linear-gradient(115deg, var(--blush) 0 2.5px, transparent 2.5px 7px);
+
+  --font: Pretendard, 'Apple SD Gothic Neo', 'Malgun Gothic', 'Segoe UI', sans-serif;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--paper);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  line-height: 1.55;
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-button { font: inherit; }
-button:focus-visible { outline: 3px solid #102b4c; outline-offset: 4px; }
-h1, h2, h3, p { margin: 0; }
+body {
+  margin: 0; min-width: 320px;
+  background-color: var(--paper);
+  /* 종이 결: 아주 옅은 점무늬 */
+  background-image: radial-gradient(rgba(91, 58, 41, 0.06) 1px, transparent 1.2px);
+  background-size: 18px 18px;
+}
+button, input { font: inherit; color: inherit; }
+h1, h2, h3, h4, p, ul, ol, dl, dd, figure { margin: 0; }
+h1, h2, h3, h4 { letter-spacing: -0.03em; }
+ul, ol { padding: 0; list-style: none; }
+:focus-visible { outline: 3px solid var(--blush-deep); outline-offset: 2px; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important; scroll-behavior: auto !important;
+  }
+}

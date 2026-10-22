@@ -1,76 +1,350 @@
-import { useState } from 'react'
-import { getHealth } from './lib/api'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { ApiError, compare, getListings } from './lib/api'
+import type { CompareRequest, CompareResponse, Listing } from './lib/api'
+import { AskPanel } from './components/AskPanel'
+import { ChatPanel } from './components/ChatPanel'
+import type { ChatCompareOutcome } from './components/ChatPanel'
+import { ConditionPanel } from './components/ConditionPanel'
+import { DEFAULT_FORM, applyChanges, buildRequest } from './lib/conditions'
+import type { Change, FormState } from './lib/conditions'
+import { MapView } from './components/MapView'
+import { Detail, ResultTable } from './components/ResultTable'
+import { Counts, TopPicks } from './components/Summary'
+import { krw } from './lib/format'
+import { mascotSkinRequested } from './lib/persona'
 import './App.css'
 
-type Connection = 'idle' | 'loading' | 'connected' | 'error'
+type Load<T> =
+  | { kind: 'loading' }
+  | { kind: 'ok'; data: T }
+  | { kind: 'error'; message: string; detail: string[] }
 
-const areas = [
-  ['개발 1', '고객 화면', '조건 입력 · 후보 비교 · 근거 표시'],
-  ['개발 2', '서버 · 데이터', 'API · DB · 외부 서비스 연결'],
-  ['개발 3', 'AI · 계산 · RAG', '조건 구조화 · 비용 계산 · 근거 검색'],
-  ['분석 1', '기준 · 검증', '추천 기준 · 검증 사례 · 평가 결과'],
-]
+function describe(error: unknown): { message: string; detail: string[] } {
+  if (error instanceof ApiError) return { message: error.message, detail: error.detail ?? [] }
+  return { message: '알 수 없는 오류가 발생했습니다.', detail: [] }
+}
+
+const CLOUD =
+  'M30 64C12 64 8 44 24 39C20 21 44 12 58 25C64 7 96 6 103 28C121 23 135 41 124 55C130 63 121 68 112 64Z'
+
+/** 상단 배경: 하늘·구름·언덕. 이미지 파일 없이 인라인 SVG로만 그린다. */
+function HeaderScene() {
+  return (
+    <div className="scene" aria-hidden="true">
+      <svg className="cloud cloud-1" viewBox="0 0 140 72">
+        <path d={CLOUD} />
+      </svg>
+      <svg className="cloud cloud-2" viewBox="0 0 140 72">
+        <path d={CLOUD} />
+      </svg>
+      <svg className="cloud cloud-3" viewBox="0 0 140 72">
+        <path d={CLOUD} />
+      </svg>
+      <svg className="hills" viewBox="0 0 1200 120" preserveAspectRatio="none">
+        <path className="hill-far" d="M0 64C140 18 300 26 430 58C570 8 730 16 870 52C990 24 1100 28 1200 46V120H0Z" />
+        <path className="hill-near" d="M0 92C190 58 380 66 570 90C770 60 990 62 1200 86V120H0Z" />
+      </svg>
+    </div>
+  )
+}
+
+/** 화면 장식용 작은 보금이. 이미지가 없는 PC에서는 조용히 숨는다. */
+function MascotDeco({ face, className }: { face: string; className: string }) {
+  return (
+    <img
+      className={className}
+      src={`/skins/bogeum/${face}.png`}
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      onError={(e) => {
+        e.currentTarget.hidden = true
+      }}
+    />
+  )
+}
 
 function App() {
-  const [connection, setConnection] = useState<Connection>('idle')
-  const [message, setMessage] = useState('서버를 실행한 뒤 연결을 확인해 주세요.')
+  const [listings, setListings] = useState<Load<Listing[]>>({ kind: 'loading' })
+  const [result, setResult] = useState<Load<CompareResponse>>({ kind: 'loading' })
+  const [form, setForm] = useState<FormState>(DEFAULT_FORM)
+  const [overrides, setOverrides] = useState<Record<string, number>>({})
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [askId, setAskId] = useState<string | null>(null)
+  const applied = useRef<CompareRequest | null>(null)
+  const seq = useRef(0)
 
-  async function checkConnection() {
-    setConnection('loading')
-    setMessage('서버 응답을 기다리고 있습니다.')
+  const fetchCompare = useCallback(async (req: CompareRequest): Promise<ChatCompareOutcome> => {
+    applied.current = req
+    const mine = ++seq.current
     try {
-      const health = await getHealth()
-      setConnection('connected')
-      setMessage(`${health.service}에 연결되었습니다.`)
+      const data = await compare(req)
+      if (mine !== seq.current) return { status: 'stale' }
+      setResult({ kind: 'ok', data })
+      return { status: 'ok', data }
     } catch (error) {
-      setConnection('error')
-      setMessage(
-        error instanceof Error && error.message.startsWith('서버')
-          ? error.message
-          : '서버에 연결할 수 없습니다. 실행 상태와 연결 설정을 확인해 주세요.',
-      )
+      if (mine !== seq.current) return { status: 'stale' }
+      const shown = describe(error)
+      setResult({ kind: 'error', ...shown })
+      return { status: 'error', message: shown.message }
     }
+  }, [])
+
+  const fetchListings = useCallback(async () => {
+    try {
+      const data = await getListings()
+      setListings({ kind: 'ok', data: data.listings })
+    } catch (error) {
+      setListings({ kind: 'error', ...describe(error) })
+    }
+  }, [])
+
+  const run = useCallback(
+    (req: CompareRequest) => {
+      setResult({ kind: 'loading' })
+      return fetchCompare(req)
+    },
+    [fetchCompare],
+  )
+
+  const loadListings = useCallback(() => {
+    setListings({ kind: 'loading' })
+    return fetchListings()
+  }, [fetchListings])
+
+  useEffect(() => {
+    // 첫 화면은 기본 조건으로 바로 비교해 보여 준다. (초기 상태가 이미 loading)
+    // 서버 요청은 effect 본문이 아니라 다음 마이크로태스크에서 시작해, effect 안에서 동기 setState 가 일어나지 않게 한다.
+    const first = buildRequest(DEFAULT_FORM, {})
+    if (!Array.isArray(first)) void Promise.resolve(first).then(fetchCompare)
+    void Promise.resolve().then(fetchListings)
+  }, [fetchCompare, fetchListings])
+
+  function submitForm(form: FormState): string[] | null {
+    const req = buildRequest(form, overrides)
+    if (Array.isArray(req)) return req
+    void run(req)
+    return null
   }
 
+  // 대화에서 사용자가 확인한 조건만 폼에 들어온다. 비교는 별도 버튼(chatCompare)으로만 실행한다.
+  function applyConfirmed(changes: Change[]) {
+    setForm((prev) => applyChanges(prev, changes))
+  }
+
+  const chatCompare = useCallback(async (): Promise<ChatCompareOutcome> => {
+    const req = buildRequest(form, overrides)
+    if (Array.isArray(req)) return { status: 'invalid', errors: req }
+    return run(req)
+  }, [form, overrides, run])
+
+  const currentRequest = useMemo(() => {
+    const req = buildRequest(form, {})
+    return Array.isArray(req) ? undefined : req
+  }, [form])
+
+  function changeOverride(id: string, value: number | null) {
+    const next = { ...overrides }
+    if (value === null) delete next[id]
+    else next[id] = value
+    setOverrides(next)
+    const base = applied.current ?? buildRequest(DEFAULT_FORM, {})
+    if (Array.isArray(base)) return
+    const { management_overrides: _drop, ...rest } = base
+    void run(Object.keys(next).length ? { ...rest, management_overrides: next } : rest)
+  }
+
+  // 비교가 오류로 끝나 상세·입력 취소 버튼이 사라져도 덮어쓰기를 걷어내고 다시 계산할 수 있게 한다.
+  function clearOverridesAndRetry() {
+    setOverrides({})
+    const base = applied.current ?? buildRequest(DEFAULT_FORM, {})
+    if (Array.isArray(base)) return
+    const { management_overrides: _drop, ...rest } = base
+    void run(rest)
+  }
+
+  function goAsk(id: string) {
+    setAskId(id)
+    document.getElementById('ask')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.getElementById('ask-input')?.focus({ preventScroll: true })
+  }
+
+  const data = result.kind === 'ok' ? result.data : null
+  const listingList = listings.kind === 'ok' ? listings.data : []
+  const selected = data?.results.find((r) => r.listing_id === selectedId)
+  const busy = result.kind === 'loading'
+  const overrideCount = Object.keys(overrides).length
+  const mascot = mascotSkinRequested()
+
   return (
-    <main className="shell">
-      <header className="intro">
-        <span className="brand">REAL RENT</span>
-        <p className="eyebrow">팀 개발 시작 화면</p>
-        <h1>함께 만들 준비가 되었습니다.</h1>
-        <p className="description">
-          거주 비용과 조건을 근거로 집을 비교하는 프로젝트입니다.
-          지금은 화면과 서버의 연결을 확인하는 초기 구조입니다.
-        </p>
+    <div className="app">
+      <a className="skip" href="#main">
+        본문 바로가기
+      </a>
+
+      <header className={mascot ? 'top top-mascot' : 'top'}>
+        <HeaderScene />
+        <div className="top-inner">
+          <div className="brand-row">
+            <span className="brand">
+              <i aria-hidden="true" />
+              REAL RENT
+            </span>
+            <span className="synthetic-badge" role="note">
+              <b aria-hidden="true">!</b> 합성 시연 데이터 · 실제 매물 아님
+            </span>
+          </div>
+          <div className="hero">
+            {mascot && <MascotDeco face="excited" className="hero-mascot" />}
+            <div className="hero-bubble">
+              <h1>
+                월세만이 아니라 관리비·통근비까지 더한
+                <br />
+                진짜 거주비로 집을 비교하세요
+              </h1>
+              <p className="lede">
+                조건을 넣으면 12개 시연 매물이 통과·탈락·판단 불가로 나뉘고, 순위와 근거가 함께 나옵니다.
+              </p>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <section className="connection-card" aria-labelledby="connection-title">
-        <div>
-          <p className="eyebrow">첫 번째 연결</p>
-          <h2 id="connection-title">화면 ↔ 서버</h2>
-          <p className={`status status-${connection}`} role="status" aria-live="polite">
-            {message}
-          </p>
-        </div>
-        <button type="button" onClick={checkConnection} disabled={connection === 'loading'}>
-          {connection === 'loading' ? '확인 중…' : '서버 연결 확인'}
-        </button>
-      </section>
+      <main id="main" className="layout">
+        <aside className="side">
+          <ConditionPanel busy={busy} form={form} onFormChange={setForm} onSubmit={submitForm} />
+        </aside>
 
-      <section className="work-areas" aria-labelledby="areas-title">
-        <h2 id="areas-title">담당 영역</h2>
-        <ul>
-          {areas.map(([role, title, description]) => (
-            <li key={role}>
-              <span className="role">{role}</span>
-              <h3>{title}</h3>
-              <p>{description}</p>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <footer>기능 구현과 팀 합의 사항은 저장소의 README와 docs에서 이어갑니다.</footer>
-    </main>
+        <div className="content">
+          <ChatPanel current={currentRequest} onApply={applyConfirmed} onCompare={chatCompare} />
+
+          <section className="panel" aria-labelledby="sum-title" aria-busy={busy}>
+            <p className="step">2 · 결과 비교</p>
+            <h2 id="sum-title">추천 결과</h2>
+
+            <div aria-live="polite">
+              {result.kind === 'loading' && (
+                <p className="state-box loading" role="status">
+                  {mascot ? (
+                    <MascotDeco face="thinking" className="state-mascot" />
+                  ) : (
+                    <span className="spinner" aria-hidden="true" />
+                  )}{' '}
+                  서버에서 계산하는 중입니다…
+                </p>
+              )}
+              {result.kind === 'error' && (
+                <div className="state-box error" role="alert">
+                  <b>결과를 불러오지 못했습니다.</b>
+                  <p>{result.message}</p>
+                  {result.detail.length > 0 && (
+                    <ul>
+                      {result.detail.map((d) => (
+                        <li key={d}>{d}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <button
+                    type="button"
+                    className="ghost"
+                    onClick={() => applied.current && void run(applied.current)}
+                  >
+                    다시 시도
+                  </button>
+                  {overrideCount > 0 && (
+                    <button type="button" className="ghost" onClick={clearOverridesAndRetry}>
+                      직접 입력한 관리비 모두 지우고 다시 시도
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {data && (
+              <>
+                {overrideCount > 0 && (
+                  <p className="override-note">
+                    직접 입력한 관리비 {overrideCount}건 반영 중:{' '}
+                    {Object.entries(overrides)
+                      .map(([id, v]) => `${id} ${krw(v)}`)
+                      .join(', ')}
+                  </p>
+                )}
+                <Counts counts={data.counts} />
+                <h3 className="sub-title">추천 TOP 3</h3>
+                <TopPicks data={data} selectedId={selectedId} onSelect={setSelectedId} />
+              </>
+            )}
+          </section>
+
+          {data && (
+            <>
+              <section className="panel" aria-labelledby="table-title">
+                <h2 id="table-title">전체 {data.results.length}건 비교</h2>
+                <ResultTable rows={data.results} selectedId={selectedId} onSelect={setSelectedId} />
+              </section>
+
+              {selected && (
+                <Detail
+                  key={selected.listing_id}
+                  result={selected}
+                  listing={listingList.find((l) => l.listing_id === selected.listing_id)}
+                  override={overrides[selected.listing_id]}
+                  busy={busy}
+                  onOverride={changeOverride}
+                  onAsk={goAsk}
+                  onClose={() => setSelectedId(null)}
+                />
+              )}
+            </>
+          )}
+
+          <section className="panel" aria-labelledby="map-title">
+            <p className="step">3 · 위치 보기</p>
+            <h2 id="map-title">매물 위치</h2>
+            {listings.kind === 'loading' && (
+              <p className="state-box loading" role="status">
+                <span className="spinner" aria-hidden="true" /> 위치 정보를 불러오는 중…
+              </p>
+            )}
+            {listings.kind === 'error' && (
+              <div className="state-box error" role="alert">
+                <b>매물 위치를 불러오지 못했습니다.</b>
+                <p>{listings.message}</p>
+                <button type="button" className="ghost" onClick={() => void loadListings()}>
+                  다시 시도
+                </button>
+              </div>
+            )}
+            {listings.kind === 'ok' && (
+              <MapView
+                listings={listings.data}
+                results={data?.results ?? []}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            )}
+          </section>
+
+          <AskPanel focusId={askId} onClearFocus={() => setAskId(null)} />
+
+          {data && (
+            <section className="panel assumptions" aria-labelledby="as-title">
+              <h2 id="as-title">이 결과의 가정</h2>
+              <ul>
+                {data.assumptions.map((a) => (
+                  <li key={a}>{a}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
+      </main>
+
+      <footer className="foot">
+        REAL RENT 시연 화면 · 모든 매물·가격·좌표·교통 값은 합성 데이터이며, 계산 규칙은 팀 승인 전 시연 가정입니다.
+      </footer>
+    </div>
   )
 }
 
