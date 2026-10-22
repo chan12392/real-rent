@@ -1,4 +1,14 @@
 /* 오리지널 마스코트 보금이 스킨(기본). 이미지 7장은 public/skins/bogeum/ 에 두고, 하나라도 없으면 렌티로 대체한다. */
+.skin-character { width: 100%; }
+.chat-local .chat-char-label { white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
+.skin-notice {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-soft, #52605a);
+  overflow-wrap: anywhere;
+}
 .mascot-wrap {
   display: grid;
   gap: 4px;
@@ -31,6 +41,7 @@
   line-height: 1.35;
   color: var(--ink-soft, #52605a);
   text-align: center;
+  overflow-wrap: anywhere;
 }
 
 /* 마스코트가 서 있는 풀밭 그림자. 몸(.mascot-body)보다 먼저 그려져 뒤에 깔린다. */

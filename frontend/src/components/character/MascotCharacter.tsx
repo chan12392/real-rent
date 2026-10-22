@@ -7,7 +7,7 @@ import './mascot.css'
 // 팀 오리지널 마스코트 "보금이" 이미지 스킨. 표정 이미지 6장 + 눈 깜박임 1장을 겹쳐 두고,
 // 불투명도(크로스페이드)와 몸 transform을 rAF에서 직접 갱신한다(프레임마다 React 렌더 없음).
 
-const SKIN_DIR = '/skins/bogeum'
+type MascotProps = CharacterProps & { skinDir?: string; name?: string; credit?: string; onSkinError?: (reason: string) => void }
 const FACES = ['neutral', 'excited', 'thinking', 'worried', 'surprised', 'sorry'] as const
 type Face = (typeof FACES)[number]
 
@@ -242,7 +242,9 @@ class MascotRig {
   }
 }
 
-function MascotView({ state, expression, intensity, typingPulse = 0, reducedMotion, label }: CharacterProps): JSX.Element {
+function MascotView({ state, expression, intensity, typingPulse = 0, reducedMotion, label,
+  skinDir = '/skins/bogeum', name = '보금이', credit = 'REAL RENT 오리지널 캐릭터 · AI 생성 시안', onSkinError,
+}: MascotProps): JSX.Element {
   const bodyRef = useRef<HTMLDivElement>(null)
   const layerEls = useRef<FaceElements>({ neutral: null, excited: null, thinking: null, worried: null, surprised: null, sorry: null })
   const blinkRef = useRef<HTMLImageElement>(null)
@@ -276,7 +278,7 @@ function MascotView({ state, expression, intensity, typingPulse = 0, reducedMoti
   }, [typingPulse])
 
   const shown = state === 'error' ? 'apologetic' : expression
-  const ariaLabel = label ?? `보금이: ${EXPRESSION_LABELS[shown]}`
+  const ariaLabel = label ?? `${name}: ${EXPRESSION_LABELS[shown]}`
 
   return (
     <div className="mascot-wrap">
@@ -298,7 +300,8 @@ function MascotView({ state, expression, intensity, typingPulse = 0, reducedMoti
               }}
               className="mascot-layer"
               data-face={f}
-              src={`${SKIN_DIR}/${f}.png`}
+              src={`${skinDir}/${f}.png`}
+              onError={() => onSkinError?.(`${f}.png: 이미지를 표시할 수 없어요`)}
               alt=""
               aria-hidden="true"
               draggable={false}
@@ -309,33 +312,37 @@ function MascotView({ state, expression, intensity, typingPulse = 0, reducedMoti
             className="mascot-layer"
             style={{ zIndex: BLINK_Z }}
             data-face="blink"
-            src={`${SKIN_DIR}/blink.png`}
+            src={`${skinDir}/blink.png`}
+            onError={() => onSkinError?.('blink.png: 이미지를 표시할 수 없어요')}
             alt=""
             aria-hidden="true"
             draggable={false}
           />
         </div>
       </div>
-      <small className="mascot-credit">REAL RENT 오리지널 캐릭터 · AI 생성 시안</small>
+      <small className="mascot-credit">{credit}</small>
     </div>
   )
 }
 
 /** 이미지 7장을 마운트 시 미리 불러오고, 하나라도 실패하면 렌티로 대체한다. */
-export function MascotCharacter(props: CharacterProps): JSX.Element {
+export function MascotCharacter({ skinDir = '/skins/bogeum', onSkinError, ...props }: MascotProps): JSX.Element {
   const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     const imgs = [...FACES, 'blink'].map((name) => {
       const img = new Image()
-      img.onerror = () => setFailed(true)
-      img.src = `${SKIN_DIR}/${name}.png`
+      img.onerror = () => {
+        setFailed(true)
+        onSkinError?.(`${name}.png: 이미지가 없거나 읽을 수 없어요`)
+      }
+      img.src = `${skinDir}/${name}.png`
       return img
     })
     return () => {
       for (const img of imgs) img.onerror = null
     }
-  }, [])
+  }, [skinDir, onSkinError])
 
-  return failed ? <Renti {...props} /> : <MascotView {...props} />
+  return failed ? <Renti {...props} /> : <MascotView {...props} skinDir={skinDir} onSkinError={onSkinError} />
 }

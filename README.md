@@ -102,11 +102,12 @@ npm run dev
 ```
 
 <http://127.0.0.1:5173>을 연다. 기본 캐릭터는 오리지널 마스코트 보금이이고 `?skin=renti`를 붙이면 코드로 그린 캐릭터 렌티로 바뀐다.
+자기 PC의 이미지·대사로 쓰는 `?skin=local` 설정은 [내 캐릭터 안내](docs/local-skin.md)를 참고한다.
 외부 CDN·웹폰트에 의존하지 않아 설치가 끝난 PC에서는 인터넷 없이 돌아간다. 시연 전 점검:
 
 ```powershell
 cd frontend
-node scripts/check-chat.ts                                              # 대화 로직 24개 검사
+node scripts/check-chat.ts                                              # 대화 로직 39개 검사
 node scripts/measure-latency.mjs --base http://127.0.0.1:5173 --n 30   # 지연 측정(서버 두 개를 띄운 상태)
 node scripts/acceptance-probe.mjs --base http://127.0.0.1:5173         # 수용 테스트 브라우저 확인
 ```

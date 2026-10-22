@@ -1,7 +1,7 @@
 // 대화 캐릭터의 이름·말투. 화면·네트워크에 의존하지 않아 node 로 바로 검사한다.
 // 보금이는 문장 앞 감탄사를 붙이고 모든 문장을 반말로 맞춘다. 숫자·매물명·비용·따옴표 안 원문은 바꾸지 않는다.
 
-export type PersonaId = 'renti' | 'bogeum'
+export type PersonaId = 'renti' | 'bogeum' | 'local'
 
 /** 대화 단계. 보금이 말투는 이 단계에 맞는 감탄사를 문장 앞에 붙인다. */
 export type VoiceCue =
@@ -34,6 +34,7 @@ export type Persona = {
   panelTitle: string
   logLabel: string
   inputLabel: string
+  credit?: string
   statusLabels: Readonly<Record<PersonaStatus, string>>
   lines: PersonaLines
   /** explain.ts 문장 틀과 서버 메모 변환에 쓴다. 렌티는 존댓말, 보금이는 반말. */
@@ -157,19 +158,73 @@ export const BOGEUM: Persona = {
   voice: (text, cue) => `${BOGEUM_INTERJECTION[cue].trimEnd()} (${casualize(text)})`,
 }
 
+export const VOICE_CUES = [
+  'confirm', 'applied', 'question', 'not_understood', 'comparing',
+  'result_pass', 'result_none', 'server_error', 'cancel',
+] as const satisfies readonly VoiceCue[]
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value)
+
+function skinString(value: unknown, field: string, max?: number): string {
+  if (typeof value !== 'string') throw new Error(`${field}: 문자열이어야 해요`)
+  if (max !== undefined && (!value.trim() || [...value].length > max)) {
+    throw new Error(`${field}: 1~${max}자여야 해요`)
+  }
+  return value
+}
+
+/** JSON.parse 결과를 검증하고 변환한다. 파일·네트워크·화면에 의존하지 않는 순수 함수. */
+export function personaFromSkinJson(value: unknown): Persona {
+  if (!isRecord(value)) throw new Error('skin.json: 객체여야 해요')
+  const name = skinString(value.name, 'name', 12)
+  const greeting = skinString(value.greeting, 'greeting')
+  const credit = skinString(value.credit, 'credit', 60)
+  if (value.tone !== 'casual' && value.tone !== 'polite') {
+    throw new Error('tone: casual 또는 polite여야 해요')
+  }
+  if (!isRecord(value.interjections)) throw new Error('interjections: 객체여야 해요')
+  const inputInterjections = value.interjections
+  const interjections = Object.fromEntries(VOICE_CUES.map((cue) => [
+    cue, skinString(inputInterjections[cue], `interjections.${cue}`, 12),
+  ])) as Record<VoiceCue, string>
+  const casual = value.tone === 'casual'
+  const statusLabels = Object.fromEntries(Object.entries(RENTI.statusLabels).map(([status, label]) => [
+    status, `${name}: ${casual ? casualize(label.replace('렌티가 ', '')) : label.replace('렌티가 ', '')}`,
+  ])) as Record<PersonaStatus, string>
+  statusLabels.thinking = `${name}: ${interjections.question} ${statusLabels.thinking.slice(name.length + 2)}`
+  statusLabels.comparing = `${name}: ${interjections.comparing} ${statusLabels.comparing.slice(name.length + 2)}`
+  statusLabels.error = `${name}: ${interjections.server_error} ${statusLabels.error.slice(name.length + 2)}`
+  const lastCode = name.charCodeAt(name.length - 1)
+  const withName = `${name}${lastCode >= 0xac00 && lastCode <= 0xd7a3 && hasFinalConsonant(name.at(-1)!) ? '과' : '와'}`
+  return {
+    id: 'local', name, greeting, credit,
+    panelTitle: `${withName} 대화로 조건 정하기`,
+    logLabel: `${withName} 나눈 대화`,
+    inputLabel: `${name}에게 조건 말하기`,
+    statusLabels,
+    lines: casual ? BOGEUM.lines : RENTI.lines,
+    tone: value.tone,
+    voice: (text, cue) => `${interjections[cue].trimEnd()} (${casual ? casualize(text) : text})`,
+  }
+}
+
 /**
- * 스킨 판별은 여기 한 곳. 쿼리가 없으면 보금이(기본 캐릭터), ?skin=renti 일 때만 렌티.
+ * 스킨 판별은 여기 한 곳. 기본 보금이, ?skin=renti 는 렌티, ?skin=local 은 로컬 파일.
  * 캐릭터 이미지와 대화 말투가 같은 규칙을 쓴다.
  */
 export function personaIdFromSearch(search: string): PersonaId {
-  return new URLSearchParams(search).get('skin') === 'renti' ? 'renti' : 'bogeum'
+  const id = new URLSearchParams(search).get('skin')
+  return id === 'renti' || id === 'local' ? id : 'bogeum'
 }
 
 export function mascotSkinRequested(): boolean {
   const search = typeof window === 'undefined' ? '' : window.location.search
-  return personaIdFromSearch(search) === 'bogeum'
+  return personaIdFromSearch(search) !== 'renti'
 }
 
 export function currentPersona(): Persona {
-  return mascotSkinRequested() ? BOGEUM : RENTI
+  const search = typeof window === 'undefined' ? '' : window.location.search
+  // 로컬 파일은 비동기 검증 전까지 렌티. 실제 화면은 loadSkin 결과를 공유한다.
+  return personaIdFromSearch(search) === 'bogeum' ? BOGEUM : RENTI
 }

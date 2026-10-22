@@ -13,7 +13,7 @@ import { createSettler, LISTEN_INTERRUPT_MIN_MS, QUICK_CHIPS, REACT_HOLD_MS, set
 import type { ChatAction, ChatState, FaceClock, IntensityTable } from '../src/lib/chat.ts'
 import { applyChanges, buildRequest, DEFAULT_FORM } from '../src/lib/conditions.ts'
 import { explainCompare, explainError } from '../src/lib/explain.ts'
-import { casualize, currentPersona, personaIdFromSearch, RENTI, BOGEUM } from '../src/lib/persona.ts'
+import { casualize, currentPersona, personaFromSkinJson, personaIdFromSearch, RENTI, BOGEUM, VOICE_CUES } from '../src/lib/persona.ts'
 import type { Persona } from '../src/lib/persona.ts'
 
 // 캐릭터 컴포넌트의 DEFAULT_INTENSITY 대신 쓰는 시험용 표 (confidence 와 다른 값으로 둔다).
@@ -650,6 +650,69 @@ check('기본 스킨: 쿼리 없음=bogeum, ?skin=renti=renti', () => {
   assert.equal(personaIdFromSearch('?skin=renti'), 'renti')
   assert.equal(personaIdFromSearch('?foo=1&skin=renti'), 'renti')
   assert.equal(personaIdFromSearch('?skin=other'), 'bogeum', '알 수 없는 값은 기본 보금이')
+  assert.equal(personaIdFromSearch('?skin=local'), 'local')
+})
+
+const localExample = JSON.parse(readFileSync(new URL('../skin-template/skin.example.json', import.meta.url), 'utf8'))
+check('T7 skin.json 정상 변환: 이름·인사·출처·모든 상태·감탄사·말투 반영', () => {
+  const persona = personaFromSkinJson({ ...localExample, name: '테스트캐릭' })
+  assert.equal(persona.id, 'local')
+  assert.equal(persona.name, '테스트캐릭')
+  assert.equal(persona.greeting, localExample.greeting)
+  assert.equal(persona.credit, localExample.credit)
+  assert.equal(persona.panelTitle, '테스트캐릭과 대화로 조건 정하기')
+  for (const label of Object.values(persona.statusLabels)) assert.ok(label.startsWith('테스트캐릭: '), label)
+  assert.equal(persona.tone, 'casual')
+  for (const cue of VOICE_CUES) {
+    assert.equal(persona.voice('654,000원이에요. “입력은 그대로요”', cue), `${localExample.interjections[cue]} (654,000원이야. “입력은 그대로요”)`)
+  }
+  for (const tone of ['casual', 'polite'] as const) {
+    const local = personaFromSkinJson({ ...localExample, tone })
+    const original = explainCompare(passData, tone)
+    assert.equal(compared(local, original).messages.at(-1)?.text, local.voice(original.text, 'result_pass'))
+    assert.equal(local.lines, tone === 'casual' ? BOGEUM.lines : RENTI.lines)
+  }
+})
+check('T7 skin.json 누락·타입 오류 거부', () => {
+  for (const field of ['name', 'greeting', 'credit', 'interjections', 'tone']) {
+    const invalid = { ...localExample }
+    delete invalid[field]
+    assert.throws(() => personaFromSkinJson(invalid), new RegExp(field))
+  }
+  for (const cue of VOICE_CUES) {
+    const interjections = { ...localExample.interjections }
+    delete interjections[cue]
+    assert.throws(() => personaFromSkinJson({ ...localExample, interjections }), new RegExp(cue))
+  }
+  for (const invalid of [null, [], 1, 'text']) assert.throws(() => personaFromSkinJson(invalid), /객체/)
+  assert.throws(() => personaFromSkinJson({ ...localExample, greeting: 1 }), /greeting/)
+})
+check('T7 skin.json 이름·출처·감탄사 길이·빈 값 검증', () => {
+  for (const value of ['', '   ', '가'.repeat(13)]) {
+    assert.throws(() => personaFromSkinJson({ ...localExample, name: value }), /name/)
+    assert.throws(() => personaFromSkinJson({ ...localExample, interjections: { ...localExample.interjections, confirm: value } }), /interjections.confirm/)
+  }
+  assert.throws(() => personaFromSkinJson({ ...localExample, credit: '가'.repeat(61) }), /credit/)
+  assert.throws(() => personaFromSkinJson({ ...localExample, credit: ' ' }), /credit/)
+  assert.equal(personaFromSkinJson({ ...localExample, name: '😀'.repeat(12) }).name, '😀'.repeat(12))
+})
+check('T7 skin.json tone 오류 거부, polite 어미·숫자 보존', () => {
+  for (const tone of ['formal', '', null, 0]) assert.throws(() => personaFromSkinJson({ ...localExample, tone }), /tone/)
+  const persona = personaFromSkinJson({ ...localExample, tone: 'polite' })
+  assert.equal(persona.voice('654,000원이에요.', 'confirm'), '콩! (654,000원이에요.)')
+})
+check('T7 이미지 표시 실패 뒤 페르소나 전환도 입력·후보·비교 순번 보존', () => {
+  const local = personaFromSkinJson(localExample)
+  const before = pass1(local)
+  const after = chatReducer(before, { type: 'personaChanged', persona: RENTI })
+  assert.equal(after.persona, RENTI)
+  assert.equal(after.pending, before.pending)
+  assert.equal(after.order, before.order)
+  assert.equal(after.messages[0].text, RENTI.greeting)
+  assert.deepEqual(after.messages.slice(1), before.messages.slice(1))
+  assert.equal(chatReducer(after, { type: 'personaChanged', persona: RENTI }), after)
+  const applied = chatReducer(after, { type: 'resolve', index: 0, decision: 'apply' })
+  assert.equal(applied.messages.at(-1)?.text, OLD_RENTI.applied)
 })
 
 check('칩 4개, 누르면 일반 전송(submit)과 같은 액션·같은 경로', () => {

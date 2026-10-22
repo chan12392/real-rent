@@ -1,6 +1,6 @@
 import type { CompareResponse, CompareResult, Status } from '../lib/api'
 import { STATUS_LABEL, STATUS_MARK, krw, legText, manwon } from '../lib/format'
-import { mascotSkinRequested } from '../lib/persona'
+import { useSkin } from '../lib/skin-context'
 
 export function StatusChip({ status }: { status: Status }) {
   return (
@@ -137,20 +137,22 @@ type TopProps = {
 }
 
 export function TopPicks({ data, selectedId, onSelect }: TopProps) {
+  const { skin, failSkin } = useSkin()
   const byId = new Map(data.results.map((r) => [r.listing_id, r]))
   const picks = data.recommended.map((id) => byId.get(id)).filter((r): r is CompareResult => !!r)
   if (picks.length === 0) {
     return (
       <div className="empty">
-        {mascotSkinRequested() && (
+        {skin.folder && (
           <img
             className="empty-mascot"
-            src="/skins/bogeum/sorry.png"
+            src={`${skin.folder}/sorry.png`}
             alt=""
             aria-hidden="true"
             draggable={false}
             onError={(e) => {
               e.currentTarget.hidden = true
+              failSkin('sorry.png: 이미지를 표시할 수 없어요')
             }}
           />
         )}

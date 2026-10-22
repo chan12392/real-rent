@@ -11,7 +11,7 @@ import { MapView } from './components/MapView'
 import { Detail, ResultTable } from './components/ResultTable'
 import { Counts, TopPicks } from './components/Summary'
 import { krw } from './lib/format'
-import { mascotSkinRequested } from './lib/persona'
+import { useSkin } from './lib/skin-context'
 import './App.css'
 
 type Load<T> =
@@ -48,17 +48,20 @@ function HeaderScene() {
   )
 }
 
-/** 화면 장식용 작은 보금이. 이미지가 없는 PC에서는 조용히 숨는다. */
+/** 대화와 같은 폴더의 캐릭터 장식. */
 function MascotDeco({ face, className }: { face: string; className: string }) {
+  const { skin, failSkin } = useSkin()
+  if (!skin.folder) return null
   return (
     <img
       className={className}
-      src={`/skins/bogeum/${face}.png`}
+      src={`${skin.folder}/${face}.png`}
       alt=""
       aria-hidden="true"
       draggable={false}
       onError={(e) => {
         e.currentTarget.hidden = true
+        failSkin(`${face}.png: 이미지를 표시할 수 없어요`)
       }}
     />
   )
@@ -174,7 +177,8 @@ function App() {
   const selected = data?.results.find((r) => r.listing_id === selectedId)
   const busy = result.kind === 'loading'
   const overrideCount = Object.keys(overrides).length
-  const mascot = mascotSkinRequested()
+  const { skin } = useSkin()
+  const mascot = !!skin.folder
 
   return (
     <div className="app">

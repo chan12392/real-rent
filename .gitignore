@@ -42,3 +42,10 @@ data/indexes/*
 .DS_Store
 Thumbs.db
 *.swp
+
+# Each PC's custom character; only the setup guide is shared.
+frontend/public/skins/local/*
+!frontend/public/skins/local/README.md
+
+# Local browser verification artifacts
+.playwright-mcp/

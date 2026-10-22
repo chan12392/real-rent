@@ -211,6 +211,7 @@ export function createInitialState(table: IntensityTable, persona: Persona = REN
 }
 
 export type ChatAction =
+  | { type: 'personaChanged'; persona: Persona }
   | { type: 'typing'; at?: number }
   | { type: 'idleTimeout' }
   | { type: 'settle'; at?: number }
@@ -311,6 +312,15 @@ function finish(state: ChatState): ChatState {
 
 export function chatReducer(state: ChatState, action: ChatAction): ChatState {
   switch (action.type) {
+    case 'personaChanged':
+      if (state.persona === action.persona) return state
+      return {
+        ...state,
+        persona: action.persona,
+        // 입력·확인 후보·비교 순번은 보존하고 인사와 이후 대사만 새 페르소나로 바꾼다.
+        messages: state.messages.map((message) => message.id === 1
+          ? { ...message, text: action.persona.greeting } : message),
+      }
     case 'typing': {
       // 서버 호출 없는 로컬 듣기 반응. 입력 중에도 대화 기록은 그대로 둔다.
       // 반응 표정이 1초도 보이기 전에는 끊지 않는다(공감 표정이 잠깐 나왔다 사라지는 것을 막는다).

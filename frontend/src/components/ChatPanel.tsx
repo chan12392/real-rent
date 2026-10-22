@@ -16,7 +16,8 @@ import {
 } from '../lib/chat'
 import type { Change } from '../lib/conditions'
 import { explainCompare, explainError } from '../lib/explain'
-import { casualize, currentPersona } from '../lib/persona'
+import { casualize } from '../lib/persona'
+import { useSkin } from '../lib/skin-context'
 import { Character, DEFAULT_INTENSITY } from './character'
 
 /** App 의 비교 실행 결과. stale 은 더 새로운 비교에 밀려 화면에 반영되지 않은 응답이다. */
@@ -55,9 +56,15 @@ class CharacterBoundary extends Component<{ children: ReactNode; fallback: React
 }
 
 export function ChatPanel({ current, onApply, onCompare }: Props) {
+  const { skin } = useSkin()
   const [state, dispatch] = useReducer(chatReducer, DEFAULT_INTENSITY, (table) =>
-    createInitialState(table, currentPersona()),
+    createInitialState(table, skin.persona),
   )
+  const personaRef = useRef(skin.persona)
+  useEffect(() => {
+    personaRef.current = skin.persona
+    dispatch({ type: 'personaChanged', persona: skin.persona })
+  }, [skin.persona])
   const { persona } = state
   const casual = persona.tone === 'casual'
   const [draft, setDraft] = useState('')
@@ -152,9 +159,9 @@ export function ChatPanel({ current, onApply, onCompare }: Props) {
     } else if (outcome.status === 'stale') {
       dispatch({ type: 'compareAbort', token })
     } else if (outcome.status === 'error') {
-      dispatch({ type: 'compareDone', token, kind: 'error', text: explainError(outcome.message, persona.tone).text })
+      dispatch({ type: 'compareDone', token, kind: 'error', text: explainError(outcome.message, personaRef.current.tone).text })
     } else {
-      const { kind, text } = explainCompare(outcome.data, persona.tone)
+      const { kind, text } = explainCompare(outcome.data, personaRef.current.tone)
       dispatch({ type: 'compareDone', token, kind, text })
     }
   }

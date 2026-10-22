@@ -10,6 +10,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "skin:check": "node scripts/check-skin.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
