@@ -1,9 +1,22 @@
+import json
+
 from fastapi.testclient import TestClient
 
+from app.api.explore import DATA
+from app.domain.explore import evaluate_home
 from app.engine.explore import amount, conversation_graph
 from app.main import create_app
+from app.schemas.explore import ExploreConditions
 
 client = TestClient(create_app())
+
+
+def evaluated_homes(conditions):
+    conditions = ExploreConditions.model_validate({"workdays": 20, **conditions})
+    return [
+        evaluate_home(home, conditions)
+        for home in json.loads(DATA.read_text(encoding="utf-8"))["homes"]
+    ]
 
 
 def request(conditions=None, message=""):
@@ -20,7 +33,7 @@ def test_initial_map_has_twelve_unrated_homes():
     assert len(data["homes"]) == 12
     assert {home["status"] for home in data["homes"]} == {"idle"}
     assert data["partial"] is True
-    assert data["conditions"]["workdays"] == 20
+    assert data["conditions"]["workdays"] is None
 
 
 def test_korean_money_and_context_preserving_turns():
@@ -41,24 +54,24 @@ def test_korean_money_and_context_preserving_turns():
 
 def test_modes_and_unknown_are_not_zero():
     c = {"office": "강남역", "budget": 100_000, "modes": {"budget": "required"}}
-    homes = {h["id"]: h for h in request(c)["homes"]}
+    homes = {h["id"]: h for h in evaluated_homes(c)}
     assert homes["home-01"]["status"] == "bad"
     assert homes["home-03"]["status"] == "unknown"
     assert homes["home-03"]["total"] is None
     assert homes["home-12"]["commute"] is None
     c["modes"]["budget"] = "preferred"
-    homes = {h["id"]: h for h in request(c)["homes"]}
+    homes = {h["id"]: h for h in evaluated_homes(c)}
     assert homes["home-01"]["status"] == "so-so"
 
 
 def test_selection_can_be_re_evaluated_and_zero_days_still_checks_route():
     c = {"office": "강남역", "budget": 1_000_000, "workdays": 0}
-    homes = {h["id"]: h for h in request(c)["homes"]}
+    homes = {h["id"]: h for h in evaluated_homes(c)}
     assert homes["home-01"]["commute"] == 0
     assert homes["home-01"]["total"] == 530_000
     assert homes["home-12"]["total"] is None
     c["budget"] = 100_000
-    assert {h["id"]: h for h in request(c)["homes"]}["home-01"]["status"] == "bad"
+    assert {h["id"]: h for h in evaluated_homes(c)}["home-01"]["status"] == "bad"
 
 
 def test_graph_does_not_overwrite_valid_conditions_on_invalid_input():
@@ -74,14 +87,14 @@ def test_graph_does_not_overwrite_valid_conditions_on_invalid_input():
 
 def test_request_validation_and_cost_order():
     assert client.post("/api/explore", json={"conditions": {"budget": True}}).status_code == 422
-    homes = request({"office": "서울역"})["homes"]
-    costs = [h["total"] for h in homes if h["total"] is not None]
-    assert costs == sorted(costs)
+    data = request({"office": "서울역"})
+    assert data["recommended_ids"] == []
+    assert all(home["total"] is None for home in data["homes"])
 
 
 def test_missing_office_cannot_produce_confirmed_budget_match():
     data = request({"budget": 800_000})
-    assert all(h["status"] == "unknown" for h in data["homes"])
+    assert all(h["status"] == "idle" for h in data["homes"])
     assert all(h["total"] is None for h in data["homes"])
 
 
@@ -110,32 +123,32 @@ def test_half_preferences_is_recommended_with_tradeoff_explained():
         "minutes": 40,
         "kind": "원룸",
     }
-    home = next(h for h in request(c)["homes"] if h["id"] == "home-01")
+    home = next(h for h in evaluated_homes(c) if h["id"] == "home-01")
     assert home["status"] == "good"
     assert any("2개 중 1개" in reason for reason in home["reasons"])
     assert any("13분" in reason for reason in home["reasons"])
     assert any("편도 통근 선호 미충족" in reason for reason in home["reasons"])
     # One out of three is below half, two out of three is above half.
     c["transfers"] = 0
-    assert next(h for h in request(c)["homes"] if h["id"] == "home-01")["status"] == "so-so"
+    assert next(h for h in evaluated_homes(c) if h["id"] == "home-01")["status"] == "so-so"
     c["transfers"] = 1
-    assert next(h for h in request(c)["homes"] if h["id"] == "home-01")["status"] == "good"
+    assert next(h for h in evaluated_homes(c) if h["id"] == "home-01")["status"] == "good"
 
 
 def test_preference_threshold_never_overrides_required_or_unknown():
     c = {"office": "강남역", "budget": 100_000, "kind": "원룸", "minutes": 100}
-    homes = {h["id"]: h for h in request(c)["homes"]}
+    homes = {h["id"]: h for h in evaluated_homes(c)}
     assert homes["home-01"]["status"] == "bad"
     assert homes["home-03"]["status"] == "unknown"
     assert homes["home-12"]["status"] == "unknown"
     c["budget"] = 800_000
     c["modes"] = {"minutes": "required"}
     c["minutes"] = 40
-    assert next(h for h in request(c)["homes"] if h["id"] == "home-01")["status"] == "bad"
+    assert next(h for h in evaluated_homes(c) if h["id"] == "home-01")["status"] == "bad"
 
 
 def test_no_preferences_recommends_when_required_conditions_pass():
-    homes = {h["id"]: h for h in request({"office": "강남역", "budget": 800_000})["homes"]}
+    homes = {h["id"]: h for h in evaluated_homes({"office": "강남역", "budget": 800_000})}
     assert homes["home-01"]["status"] == "good"
     assert homes["home-03"]["status"] == "unknown"
 
@@ -211,6 +224,9 @@ def test_remove_preference_does_not_ask_it_again_and_readding_clears_waiver():
         "minutes": 40,
         "move_in": "2026-11-01",
         "kind": "원룸",
+        "workdays": 20,
+        "priority": "cost",
+        "transfers": 2,
     }
     result = explore_turn("원룸 아니어도 괜찮아요", c)
     assert result["conditions"]["kind"] is None
@@ -248,7 +264,7 @@ def test_formatted_money_units_and_unrelated_date_do_not_become_workdays():
     assert result["conditions"]["deposit"] == 10_000_000
     assert result["conditions"]["budget"] == 800_000
     assert result["pending_conditions"] is None
-    assert explore_turn("입주일 2027-01-15")["conditions"]["workdays"] == 20
+    assert explore_turn("입주일 2027-01-15")["conditions"]["workdays"] is None
 
 
 def test_pending_cancel_does_not_undo_previous_change():

@@ -5,7 +5,7 @@ import type { Mood } from "./types";
 
 // Reveal one short sentence as a single utterance. Screen readers receive the
 // complete sentence once, rather than an announcement for every character.
-export function Companion({ text, mood, selected }: { text: string; mood: Mood; selected: boolean }) {
+export function Companion({ text, mood, selected, recommended }: { text: string; mood: Mood; selected: boolean; recommended: boolean }) {
   const [progress, setProgress] = useState({ text, length: 0 });
   const length = progress.text === text ? progress.length : 0;
   const [reducedMotion, setReducedMotion] = useState(false);
@@ -31,7 +31,7 @@ export function Companion({ text, mood, selected }: { text: string; mood: Mood; 
   return <section className={`companion ${speaking ? "companion-speaking" : ""}`}>
     <Rabbit mood={mood} talking={speaking} />
     <div className="companion-copy">
-      <span className={`mood-tag mood-${mood}`}>{selected ? moods[mood] : "우사기와 집 찾기"}</span>
+      <span className={`mood-tag mood-${mood}`}>{selected ? mood === "good" && !recommended ? "조건 충족" : moods[mood] : "우사기와 집 찾기"}</span>
       <p className="utterance-text"><span className="utterance-measure" aria-hidden="true">{text}</span><span className="sr-only" role="status">{text}</span><span className="utterance-output" aria-hidden="true">{reducedMotion ? text : letters.slice(0, length).join("")}{speaking && <span className="speech-dots">···</span>}</span></p>
     </div>
   </section>;

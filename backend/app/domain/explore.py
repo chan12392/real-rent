@@ -16,7 +16,13 @@ DEFAULT_REQUIRED = {"deposit", "budget", "move_in", "office"}
 
 def evaluate_home(home: dict, c: ExploreConditions) -> dict:
     route = home["routes"].get(c.office) if c.office else None
-    commute = (route["outbound"]["fare"] + route["inbound"]["fare"]) * c.workdays if route else None
+    route_failed = c.office in home.get("route_errors", {})
+    if route_failed or (route and (route["outbound"] is None or route["inbound"] is None)):
+        route = None
+    commute = (
+        (route["outbound"]["fare"] + route["inbound"]["fare"]) * c.workdays
+        if route and c.workdays is not None else None
+    )
     total = (
         home["rent"] + home["management"] + commute
         if home["management"] is not None and commute is not None
@@ -90,7 +96,8 @@ def evaluate_home(home: dict, c: ExploreConditions) -> dict:
     if home["management"] is None:
         reasons.append("관리비를 확인해야 해요.")
     if c.office and route is None:
-        reasons.append("출퇴근 경로를 확인하지 못했어요.")
+        reasons.append("출퇴근 경로 조회에 실패했어요." if route_failed
+                       else "출퇴근 경로 자료가 미확인이에요.")
     if not reasons:
         reasons = ["입력한 조건에 잘 맞아요!" if active else "조건을 알려주시면 비교해 드릴게요."]
     return {
@@ -101,6 +108,9 @@ def evaluate_home(home: dict, c: ExploreConditions) -> dict:
         "commute": commute,
         "total": total,
         "minutes": minutes,
+        "round_trip_minutes": (
+            route["outbound"]["minutes"] + route["inbound"]["minutes"] if route else None
+        ),
         "transfers": transfers,
         "route": route,
     }

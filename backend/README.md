@@ -28,7 +28,7 @@ uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 | 개발 2 | `app/api/` | 요청·응답, 오류와 API 연결 |
 | 개발 2 | `app/db/demo.py` | 시연 파일 조회·형식 검사. DB 교체 시 조회 경계 |
 | 개발 2 | `app/integrations/`, `../deploy/` | 주소·교통 API, 캐시·오류 처리, 배포 |
-| 개발 3 | `app/engine/` | 자연어 조건 추출, 경로 응답 정리, RAG·LangGraph와 추천 이유 |
+| 개발 3 | `app/engine/` | 자연어 조건 추출·확인, 문서 근거·LangGraph와 추천 이유 |
 | 분석 | `app/domain/` | 비용 계산, 필터와 정렬 함수 |
 | 공통 · 개발 2 조율 | `app/schemas/` | 연결 확인·조건·매물·왕복 경로·비교 결과 모델 |
 | 공통 | `tests/` | 실제 동작을 확인하는 자동 검사 |
@@ -56,4 +56,7 @@ uv run python -m pytest
 `POST /api/explore`는 `engine/explore.py`의 LangGraph 규칙 기반 대화 흐름과
 `domain/explore.py`의 개별 매물 판정을 연결한다. LLM/API 키가 필요하지 않다.
 입출력은 `schemas/explore.py`, 합성 데이터는 `data/demo/explore.json`,
-자동 검사는 `tests/test_explore.py`다. 기존 비교 API는 유지한다.
+자동 검사는 `tests/test_explore.py`, `tests/engine/`이다. 기존 비교 API는 유지한다.
+조건을 모두 확인한 뒤에만 비교하며 변경 시 재확인한다. 출근일과 비용/시간 우선순위에
+임의 기본값을 넣지 않는다. 합성 근거 문서는 `data/references/explore.json`에서 매물 ID별로 찾는다.
+진행 상태와 실제 모델·주소·교통 연결의 남은 범위는 [개발 3 안내](../docs/development-3.md)를 따른다.

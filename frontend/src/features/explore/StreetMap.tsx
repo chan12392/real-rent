@@ -74,9 +74,9 @@ export function StreetMap({ homes, office, selected, ready, onSelect }: {
         return <button key={h.id} className={`house-pin street-house-pin ${selected === h.id ? "selected" : ""}`}
           style={{ left: point.x, top: point.y }} disabled={!ready}
           onClick={() => onSelect(h.id)} aria-pressed={selected === h.id}
-          aria-label={`${h.name}, ${moods[h.status]}, 월세 ${won(h.rent)}, 동네 대표 위치의 합성 매물`}>
-          <span className={`map-pin-shell ${h.status === "good" ? "map-pin-recommended" : ""}`} aria-hidden="true">
-            {h.status === "good" ? <span className="map-pin-portrait"><Rabbit mood="good" small /></span> : <span className="map-pin-dot" />}
+          aria-label={`${h.name}, ${h.status === "good" && !h.recommended ? "조건 충족" : moods[h.status]}, 월세 ${won(h.rent)}, 동네 대표 위치의 합성 매물`}>
+          <span className={`map-pin-shell ${h.recommended ? "map-pin-recommended" : ""}`} aria-hidden="true">
+            {h.recommended ? <span className="map-pin-portrait"><Rabbit mood="good" small /></span> : <span className="map-pin-dot" />}
           </span>
           <span className="pin-label">{h.area} <b>월세 {h.rent / 10000}만</b></span>
         </button>;

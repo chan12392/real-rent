@@ -1,0 +1,110 @@
+[
+  {
+    "document_id": "demo-home-01-management",
+    "listing_id": "home-01",
+    "title": "망원 원룸 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 인터넷, 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-02-management",
+    "listing_id": "home-02",
+    "title": "합정 오피스텔 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-03-management",
+    "listing_id": "home-03",
+    "title": "연남 빌라 시연 설명",
+    "quote": "관리비 금액은 미확인입니다. 포함 항목도 계약으로 확인된 정보가 아닙니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-04-management",
+    "listing_id": "home-04",
+    "title": "공덕 원룸 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-05-management",
+    "listing_id": "home-05",
+    "title": "신길 오피스텔 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 인터넷, 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-06-management",
+    "listing_id": "home-06",
+    "title": "당산 빌라 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-07-management",
+    "listing_id": "home-07",
+    "title": "봉천 원룸 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 인터넷, 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-08-management",
+    "listing_id": "home-08",
+    "title": "사당 오피스텔 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-09-management",
+    "listing_id": "home-09",
+    "title": "왕십리 빌라 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 인터넷, 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-10-management",
+    "listing_id": "home-10",
+    "title": "성수 원룸 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-11-management",
+    "listing_id": "home-11",
+    "title": "잠실 오피스텔 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 인터넷, 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  },
+  {
+    "document_id": "demo-home-12-management",
+    "listing_id": "home-12",
+    "title": "신림 빌라 시연 설명",
+    "quote": "시연 자료의 관리비 포함 항목은 공용 청소입니다. 이 문서는 합성 매물 자료를 옮긴 개발용 설명이며 실제 계약·모집 정보가 아닙니다.",
+    "source": "data/demo/explore.json",
+    "as_of": "2026-10-23",
+    "synthetic": true
+  }
+]

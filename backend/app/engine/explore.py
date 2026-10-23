@@ -1,12 +1,16 @@
 """규칙 기반 한국어 추출 → 검증 → 추가 질문. 외부 모델/추적 서비스 미사용."""
 
+# shortcut: 모델 선정 전에는 규칙으로 추출하며, 모델 확정 시 추출 단계만 교체한다.
+
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from typing import TypedDict
-from zoneinfo import ZoneInfo
 
 from langgraph.graph import END, START, StateGraph
 
+from app.domain.explore import evaluate_home
+from app.engine.evidence import evidence_for, load_evidence
 from app.schemas.explore import ExploreConditions
 
 
@@ -17,6 +21,13 @@ class State(TypedDict):
     pending_conditions: dict | None
     previous_conditions: dict | None
     undone: bool
+    confirmed_conditions: dict | None
+    stage: str
+    clarification: bool
+    homes: list[dict]
+    recommended_ids: list[str]
+    partial: bool
+    exclusion_summary: dict[str, int]
 
 
 DIGITS = {"일": 1, "이": 2, "삼": 3, "사": 4, "오": 5, "육": 6, "칠": 7, "팔": 8, "구": 9}
@@ -29,7 +40,10 @@ def amount(text: str) -> int:
         match = re.fullmatch(r"(\d+\.\d+)(만|억)", text)
         if not match:
             raise ValueError("소수 금액 형식")
-        return round(float(match[1]) * {"만": 10000, "억": 100000000}[match[2]])
+        value = Decimal(match[1]) * {"만": 10000, "억": 100000000}[match[2]]
+        if value != value.to_integral_value():
+            raise ValueError("원 단위 정수 금액이 필요합니다.")
+        return int(value)
     total = section = digit = 0
     for part in re.findall(r"\d+|[일이삼사오육칠팔구십백천만억]", text):
         if part.isdigit() or part in DIGITS:
@@ -44,7 +58,7 @@ def amount(text: str) -> int:
 
 
 def local_today() -> date:
-    return datetime.now(ZoneInfo("Asia/Seoul")).date()
+    return datetime.now(timezone(timedelta(hours=9))).date()
 
 
 def extract(state: State) -> dict:
@@ -92,11 +106,50 @@ def extract(state: State) -> dict:
             "pending_conditions": None,
             "reply": "확인 중인 조건은 적용하지 않았어요. 원하는 값을 다시 알려주세요.",
         }
+    if not pending and re.fullmatch(
+        r"(?:네+|응+|좋아|좋아요|맞아|맞아요|예|확인|이대로\s*(?:적용|찾기|추천))[.!~]?", text
+    ):
+        return {"confirmed_conditions": c}
+    if re.search(r"또는|혹은|아니면", text):
+        return {"reply": "선택할 조건을 하나씩 정해 알려주세요.", "clarification": True}
+    offices = [office for office in ("강남역", "서울역", "여의도역") if office in text]
+    if len(offices) > 1:
+        return {"reply": "출퇴근할 회사 한 곳의 정확한 위치를 알려주세요.", "clarification": True}
+    if re.search(r"회사\s*주소|(?:회사|직장)\s*(?:는|가|:)?.*역", text) and not offices:
+        return {
+            "reply": "회사 위치를 확인할 수 없어요. 정확한 주소를 알려주세요. "
+                     "현재 시연 비교는 강남역·서울역·여의도역만 지원해요.",
+            "clarification": True,
+        }
+    if re.search(r"(?:주|매주)\s*\d+\s*일", text):
+        return {"reply": "월 출근일은 몇 일인가요? 0~31일의 정수로 알려주세요.",
+                "clarification": True}
+    if any(
+        match[1].startswith("-") or "." in match[1]
+        for match in re.finditer(r"(-?\d+(?:\.\d+)?)\s*(?:분|시간|회|번)", text)
+    ) or re.search(
+        r"(?:원|만|억|분|시간|회|번)\s*(?:은|는|이|가|도)?\s*"
+        r"(?:이상|초과|넘|미만|보다|안\s*(?:돼|되)|못|싫|아니|말고)", text
+    ):
+        return {"reply": "금액·통근 시간·환승의 최대 허용값을 0 이상 정수로 알려주세요. "
+                         "말씀하신 값을 상한으로 바꾸어 적용하지 않았어요.",
+                "clarification": True}
     recognized = False
-    invalid = False
+    invalid = ""
     proposals = {}
     prompts = []
     notes = []
+    priorities = [
+        value for pattern, value in (
+            (r"(?:비용|돈|예산)\s*(?:을\s*)?우선|저렴한\s*순", "cost"),
+            (r"(?:시간|통근)\s*(?:을\s*)?우선|빠른\s*순", "time"),
+        ) if re.search(pattern, text)
+    ]
+    if len(priorities) > 1:
+        return {"reply": "비용 우선과 시간 우선 중 하나를 선택해 주세요.", "clarification": True}
+    if priorities:
+        c["priority"] = priorities[0]
+        recognized = True
     aliases = {
         "deposit": r"보증금",
         "budget": r"월세|월\s*(?:예산|지출)|예산",
@@ -157,7 +210,7 @@ def extract(state: State) -> dict:
                     else:
                         updates[key] = value
                 except ValueError:
-                    invalid = True
+                    invalid = "금액은 원 단위 정수로 알려주세요. 예: 월 예산 80만 원"
         for office in ["강남역", "서울역", "여의도역"]:
             if office in clause:
                 updates["office"] = office
@@ -179,7 +232,7 @@ def extract(state: State) -> dict:
             try:
                 updates["move_in"] = date(*map(int, m.groups())).isoformat()
             except ValueError:
-                invalid = True
+                invalid = "입주일은 2026-11-01처럼 연도와 유효한 날짜로 알려주세요."
         elif re.search(r"다음\s*달", clause):
             year, month = (
                 (today.year + 1, 1) if today.month == 12 else (today.year, today.month + 1)
@@ -194,7 +247,7 @@ def extract(state: State) -> dict:
                     "'다음 달 초'처럼 범위로 말한 경우 원하는 날짜로 바꿔도 돼요."
                 )
             except ValueError:
-                invalid = True
+                invalid = "입주일은 2026-11-01처럼 연도와 유효한 날짜로 알려주세요."
         else:
             m = re.search(r"(\d+)\s*월\s*(\d+)\s*일", clause)
             if m:
@@ -206,7 +259,7 @@ def extract(state: State) -> dict:
                     proposals["move_in"] = proposed.isoformat()
                     prompts.append(f"입주일은 {proposed.isoformat()}을 말씀하신 걸까요?")
                 except ValueError:
-                    invalid = True
+                    invalid = "입주일은 2026-11-01처럼 연도와 유효한 날짜로 알려주세요."
         if re.search(
             r"환승\s*(?:없이|없|안)|한\s*번에|직통|갈아타(?:기)?\s*(?:싫|안)|안\s*갈아타", clause
         ):
@@ -219,8 +272,12 @@ def extract(state: State) -> dict:
         if m:
             value = m[1] or m[2]
             updates["transfers"] = int({"한": 1, "두": 2, "세": 3}.get(value, value))
-        m = re.search(r"(?:출근\s*(?:일수)?\s*(?:월\s*)?|월\s*)(\d+)\s*일", clause)
+        m = re.search(
+            r"(?:출근\s*(?:일수)?\s*(?:월\s*)?|월\s*)(-?\d+(?:\.\d+)?)\s*일", clause
+        )
         if m and not re.search(r"입주|다음\s*달|\d+월\s*\d+일|\d{4}[-./]", clause):
+            if not m[1].isdigit() or not 0 <= int(m[1]) <= 31:
+                return {"reply": "월 출근일은 0~31일의 정수로 알려주세요.", "clarification": True}
             updates["workdays"] = int(m[1])
         if "월세" in clause and not re.search(r"[0-9만억천백십]", clause) and re.search(
             r"얼마|안쪽|이내|이하", clause
@@ -286,12 +343,13 @@ def extract(state: State) -> dict:
     except ValueError:
         return {
             "pending_conditions": None,
+            "clarification": True,
             "reply": (
                 "조건 범위를 확인해 주세요. 출근일은 0~31일, 금액·시간은 0 이상으로 알려주세요."
             ),
         }
     if invalid:
-        reply = "일부 표현을 확인하지 못했어요. 입주일은 2026-11-01처럼 연도까지 알려주세요."
+        reply = invalid
     elif prompts:
         reply = " ".join(prompts) + " 확인 전에는 그 값은 반영하지 않을게요."
     elif notes:
@@ -308,34 +366,129 @@ def extract(state: State) -> dict:
         "reply": reply,
         "pending_conditions": proposal,
         "undone": False,
+        "clarification": bool(invalid) or (bool(text) and not recognized),
     }
 
 
 def respond(state: State) -> dict:
-    if state.get("reply"):
-        return {}
-    c = state["conditions"]
+    c = ExploreConditions.model_validate(state["conditions"]).model_dump(mode="json")
     questions = [
         ("deposit", "보증금은 얼마까지 괜찮으세요?"),
         ("budget", "월세·관리비·통근비를 합해 월 얼마까지 괜찮으세요?"),
         ("office", "직장은 강남역·서울역·여의도역 중 어디인가요?"),
         ("minutes", "편도 출퇴근은 몇 분까지 괜찮으세요?"),
         ("move_in", "희망 입주일을 연도까지 알려주세요. 예: 2026-11-01"),
-        ("kind", "원룸·오피스텔·빌라 중 어떤 집을 선호하세요?"),
+        ("workdays", "한 달에 며칠 출근하시나요? 0~31일의 정수로 알려주세요."),
+        ("transfers", "편도 환승은 최대 몇 회까지 괜찮으세요?"),
+        ("priority", "비용 우선과 시간 우선 중 어떤 기준으로 추천할까요?"),
     ]
     missing = next(
-        (q for k, q in questions if c.get(k) is None and k not in c.get("ignored", [])), None
+        (q for k, q in questions
+         if c.get(k) is None and (k == "office" or k not in c.get("ignored", []))), None
     )
-    prefix = "말씀하신 조건으로 지도를 반영했어요. " if state["message"] else ""
-    return {
-        "reply": prefix + (missing or "조건을 모두 받았어요! 지도에서 집을 눌러 비교해 보세요.")
+    confirmed = state.get("confirmed_conditions")
+    if confirmed is not None:
+        confirmed = ExploreConditions.model_validate(confirmed).model_dump(mode="json")
+    if state.get("pending_conditions") or state.get("clarification"):
+        stage = "clarifying"
+    elif missing:
+        stage = "collecting"
+    elif confirmed == c:
+        stage = "ready"
+    else:
+        stage = "awaiting_confirmation"
+    result = {
+        "conditions": c,
+        "stage": stage,
+        "partial": bool(missing),
+        "confirmed_conditions": c if stage == "ready" else None,
+        "recommended_ids": [],
+        "exclusion_summary": {},
+        "reply": (
+            state.get("reply") or missing or "입력한 조건을 확인해 주세요. 확인 후 추천합니다."
+        ),
     }
+    if stage != "ready":
+        result["homes"] = [
+            {
+                **{key: value for key, value in home.items()
+                   if key not in {"routes", "route_errors"}},
+                "status": "idle", "recommended": False,
+                "checks": [], "reasons": ["조건 확인 후 비교해 드릴게요."],
+                "commute": None, "total": None, "minutes": None, "transfers": None,
+                "round_trip_minutes": None, "route": None,
+                "evidence": [], "evidence_status": "not_searched",
+            }
+            for home in state.get("homes", [])
+        ]
+    return result
+
+
+def compare(state: State) -> dict:
+    conditions = ExploreConditions.model_validate(state["conditions"])
+    homes = [evaluate_home(home, conditions) for home in state.get("homes", [])]
+    first, second = (
+        ("total", "round_trip_minutes") if conditions.priority == "cost"
+        else ("round_trip_minutes", "total")
+    )
+    homes.sort(key=lambda home: (
+        home[first] if home[first] is not None else float("inf"),
+        home[second] if home[second] is not None else float("inf"), home["id"],
+    ))
+    return {"homes": homes}
+
+
+def explain(state: State) -> dict:
+    documents = load_evidence()
+    homes = state["homes"]
+    recommended = [home["id"] for home in homes if home["status"] == "good"][:3]
+    summary = {"conditions": 0, "route_failed": 0, "route_unknown": 0, "management_unknown": 0}
+    for home in homes:
+        home["recommended"] = home["id"] in recommended
+        home.update(evidence_for(home["id"], documents))
+        if home["total"] is not None:
+            home["reasons"].append(
+                f"월 지출 {home['total']:,}원 = 월세 {home['rent']:,}원 + "
+                f"관리비 {home['management']:,}원 + 통근비 {home['commute']:,}원이에요."
+            )
+        summary["conditions"] += any(
+            check["mode"] == "required" and check["passed"] is False for check in home["checks"]
+        )
+        if home["route"] is None:
+            failed = home.get("route_errors", {}).get(state["conditions"]["office"])
+            summary["route_failed" if failed else "route_unknown"] += 1
+        summary["management_unknown"] += home["management"] is None
+        home.pop("routes", None)
+        home.pop("route_errors", None)
+    priority = "월 지출" if state["conditions"]["priority"] == "cost" else "왕복 통근 시간"
+    if recommended:
+        reply = f"확인한 조건으로 {priority}이 적은 순서의 후보 {len(recommended)}개를 추천해요."
+    else:
+        labels = {
+            "conditions": "필수 조건 불일치", "route_failed": "경로 조회 실패",
+            "route_unknown": "경로 자료 미확인", "management_unknown": "관리비 미확인",
+        }
+        reasons = ", ".join(f"{labels[key]} {count}건" for key, count in summary.items() if count)
+        reply = (
+            f"추천 후보가 없어요. {reasons or '선호 조건을 충족하는 후보 없음'}. "
+            "한 집에 여러 이유가 있을 수 있어요. 어떤 조건을 바꿀까요? "
+            "선택하신 조건만 바꾸고 다시 확인받을게요."
+        )
+    return {"homes": homes, "recommended_ids": recommended, "reply": reply,
+            "exclusion_summary": summary}
 
 
 builder = StateGraph(State)
 builder.add_node("extract", extract)
 builder.add_node("respond", respond)
+builder.add_node("compare", compare)
+builder.add_node("explain", explain)
 builder.add_edge(START, "extract")
 builder.add_edge("extract", "respond")
-builder.add_edge("respond", END)
+builder.add_conditional_edges(
+    "respond", lambda state: "compare" if state["stage"] == "ready" else END,
+    {"compare": "compare", END: END},
+)
+builder.add_edge("compare", "explain")
+builder.add_edge("explain", END)
 conversation_graph = builder.compile()

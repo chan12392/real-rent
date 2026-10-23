@@ -15,7 +15,8 @@ export type Conditions = {
   move_in: string | null;
   kind: string | null;
   transfers: number | null;
-  workdays: number;
+  workdays: number | null;
+  priority: "cost" | "time" | null;
   ignored: Key[];
   modes: Partial<Record<Key, "required" | "preferred">>;
 };
@@ -34,13 +35,17 @@ export type Home = {
   x: number;
   y: number;
   status: Mood;
+  recommended: boolean;
   reasons: string[];
   total: number | null;
   commute: number | null;
   minutes: number | null;
+  round_trip_minutes: number | null;
   transfers: number | null;
   route: { outbound: Leg; inbound: Leg } | null;
   checks: { key: Key; label: string; mode: string; passed: boolean | null }[];
+  evidence: { document_id: string; listing_id: string; title: string; quote: string; source: string; as_of: string; synthetic: true }[];
+  evidence_status: "found" | "missing" | "unavailable" | "not_searched";
 };
 export type Result = {
   conditions: Conditions;
@@ -51,6 +56,10 @@ export type Result = {
   note: string;
   pending_conditions: Conditions | null;
   undone: boolean;
+  stage: "collecting" | "clarifying" | "awaiting_confirmation" | "ready";
+  confirmed_conditions: Conditions | null;
+  recommended_ids: string[];
+  exclusion_summary: Record<string, number>;
 };
 export type Message = { role: "user" | "assistant"; text: string };
 export const initial: Conditions = {
@@ -61,7 +70,8 @@ export const initial: Conditions = {
   move_in: null,
   kind: null,
   transfers: null,
-  workdays: 20,
+  workdays: null,
+  priority: null,
   ignored: [],
   modes: {},
 };
@@ -84,4 +94,14 @@ export const moods: Record<Mood, string> = {
 };
 export function won(value: number | null) {
   return value === null ? "미확인" : `${value.toLocaleString("ko-KR")}원`;
+}
+
+export function conditionText(c: Conditions, key: Key) {
+  const value = c[key];
+  if (c.ignored.includes(key)) return "상관없어요";
+  if (value === null) return "미입력";
+  if (key === "deposit" || key === "budget") return `${(Number(value) / 10000).toLocaleString("ko-KR")}만 원 이하`;
+  if (key === "minutes") return `${value}분 이내`;
+  if (key === "transfers") return value === 0 ? "환승 없이" : `${value}회 이내`;
+  return String(value);
 }
