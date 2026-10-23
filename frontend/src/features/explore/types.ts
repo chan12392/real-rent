@@ -16,6 +16,7 @@ export type Conditions = {
   kind: string | null;
   transfers: number | null;
   workdays: number;
+  ignored: Key[];
   modes: Partial<Record<Key, "required" | "preferred">>;
 };
 export type Leg = { minutes: number; fare: number; transfers: number };
@@ -48,6 +49,8 @@ export type Result = {
   partial: boolean;
   synthetic: true;
   note: string;
+  pending_conditions: Conditions | null;
+  undone: boolean;
 };
 export type Message = { role: "user" | "assistant"; text: string };
 export const initial: Conditions = {
@@ -59,6 +62,7 @@ export const initial: Conditions = {
   kind: null,
   transfers: null,
   workdays: 20,
+  ignored: [],
   modes: {},
 };
 export const labels: Record<Key, string> = {

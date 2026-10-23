@@ -18,6 +18,13 @@ def explore(request: ExploreRequest):
             "message": request.message,
             "conditions": request.conditions.model_dump(mode="json"),
             "reply": "",
+            "pending_conditions": request.pending_conditions.model_dump(mode="json")
+            if request.pending_conditions
+            else None,
+            "previous_conditions": request.previous_conditions.model_dump(mode="json")
+            if request.previous_conditions
+            else None,
+            "undone": False,
         }
     )
     conditions = ExploreConditions.model_validate(result["conditions"])
@@ -35,10 +42,12 @@ def explore(request: ExploreRequest):
         )
     )
     partial = any(
-        getattr(conditions, key) is None
+        getattr(conditions, key) is None and key not in conditions.ignored
         for key in ["deposit", "budget", "office", "minutes", "move_in", "kind"]
     )
     return {
+        "pending_conditions": result.get("pending_conditions"),
+        "undone": result.get("undone", False),
         "synthetic": True,
         "note": data["note"],
         "conditions": result["conditions"],

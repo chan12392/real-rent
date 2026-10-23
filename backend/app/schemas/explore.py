@@ -20,6 +20,7 @@ class ExploreConditions(BaseModel):
     kind: Kind | None = None
     transfers: StrictInt | None = Field(default=None, ge=0, le=10)
     workdays: StrictInt = Field(default=20, ge=0, le=31)
+    ignored: list[Key] = Field(default_factory=list, max_length=7)
     modes: dict[Key, Literal["required", "preferred"]] = Field(default_factory=dict)
 
 
@@ -27,3 +28,6 @@ class ExploreRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     message: str = Field(default="", max_length=2000)
     conditions: ExploreConditions = Field(default_factory=ExploreConditions)
+
+    previous_conditions: ExploreConditions | None = None
+    pending_conditions: ExploreConditions | None = None
