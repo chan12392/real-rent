@@ -86,6 +86,8 @@ def test_zero_workdays_keeps_commute_filters_but_has_zero_fares(client):
     {"workdays": "20"}, {"monthly_limit_krw": -1}, {"deposit_limit_krw": -1},
     {"max_transfers": -1}, {"move_in_date": "2026-02-30"}, {"priority": "unknown"},
     {"office_id": "unavailable-office"}, {"unexpected": "value"},
+    {"move_in_date": 1793491200}, {"move_in_date": "1793491200"},
+    {"move_in_date": "2026-11-01T00:00:00Z"},
 ])
 def test_invalid_requests_are_rejected(client, changes):
     assert client.post("/api/compare", json=INPUT | changes).status_code == 422

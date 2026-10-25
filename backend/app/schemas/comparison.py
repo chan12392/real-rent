@@ -1,7 +1,8 @@
 from datetime import date
+from re import fullmatch
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 NonnegativeInt = Annotated[int, Field(ge=0, le=9_007_199_254_740_991, strict=True)]
 
@@ -81,6 +82,15 @@ class ComparisonRequest(BaseModel):
     max_commute_minutes: NonnegativeInt
     max_transfers: NonnegativeInt
     priority: Literal["cost", "time"]
+
+    @field_validator("move_in_date", mode="before")
+    @classmethod
+    def require_date_without_time(cls, value):
+        if type(value) is date or (
+            isinstance(value, str) and fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value)
+        ):
+            return value
+        raise ValueError("입주 희망일은 YYYY-MM-DD 형식이어야 합니다.")
 
 
 class Candidate(BaseModel):
