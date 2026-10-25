@@ -172,12 +172,16 @@ def test_confirmed_conditions_can_be_restored_without_sharing_server_state(clien
     "환승 1번은 안 돼", "통근 시간은 40분 이상", "통근 -10분", "환승 1.5회",
     "출근 주 5일", "직장은 강남역 또는 서울역", "회사 주소는 마곡역 근처",
     "월 예산 80만 원 이상", "보증금 3천만 원은 아니야", "예산 -50만원",
+    "오피스텔은 싫어요", "원룸 말고 빌라",
+    "보증금 500만~1000만 원", "월 예산 50만 원부터 80만 원",
+    "월 예산 50-80만 원", "보증금 500만 원에서 1000만 원",
 ])
 def test_ambiguous_or_unsupported_conditions_are_not_reinterpreted(client, message):
     result = turn(client, confirmed_conditions=CONDITIONS, message=message)
     assert result["stage"] == "clarifying"
     assert result["recommended_ids"] == []
     assert all(result["conditions"][key] == value for key, value in CONDITIONS.items())
+    assert result["conditions"]["kind"] is None
 
 
 @pytest.mark.parametrize("broken", ["duplicate", "negative_fare", "missing_field", "not_synthetic"])

@@ -124,6 +124,12 @@ def extract(state: State) -> dict:
     if re.search(r"(?:주|매주)\s*\d+\s*일", text):
         return {"reply": "월 출근일은 몇 일인가요? 0~31일의 정수로 알려주세요.",
                 "clarification": True}
+    if re.search(
+        r"(?:원룸|오피스텔|빌라)\s*(?:은|는|이|가|도|을|를)?\s*"
+        r"(?:싫|아니(?!어도)|말고|제외|빼|안\s*(?:돼|되)|못)", text
+    ):
+        return {"reply": "제외할 유형을 선호로 적용하지 않았어요. 원하는 주거 유형을 알려주세요.",
+                "clarification": True}
     if any(
         match[1].startswith("-") or "." in match[1]
         for match in re.finditer(r"(-?\d+(?:\.\d+)?)\s*(?:분|시간|회|번)", text)
@@ -189,6 +195,10 @@ def extract(state: State) -> dict:
                 pattern + r"\s*(?:만|은|는|을|를|이|가)?\s*(" + NUMBER + r")\s*(원)?", clause
             )
             if m:
+                if re.match(r"\s*(?:[~∼～–-]|부터|에서)", clause[m.end():]):
+                    return {"reply": "금액 범위를 상한으로 바꾸어 적용하지 않았어요. "
+                                     "허용할 최대 금액 하나를 알려주세요.",
+                            "clarification": True}
                 token = m[1].strip().rstrip(".,")
                 if token.endswith("일") and not m[2]:
                     continue  # '월 20일' is a workday count, not a money amount.
