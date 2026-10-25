@@ -11,16 +11,20 @@ export async function requestApi<T>(
   init: RequestInit = {},
 ): Promise<T> {
   let response: Response
+  let data: unknown
+  const signal = AbortSignal.timeout(8000)
   try {
-    response = await fetch(`${apiBase}${path}`, { ...init, signal: AbortSignal.timeout(8000) })
+    response = await fetch(`${apiBase}${path}`, { ...init, signal })
+    data = await response.json().catch((error: unknown) => {
+      if (error instanceof SyntaxError) return null
+      throw error
+    })
   } catch (error) {
-    if (error instanceof Error && error.name === 'TimeoutError') {
+    if (signal.aborted || (error instanceof Error && error.name === 'TimeoutError')) {
       throw new Error('서버 응답이 8초를 넘었습니다. 다시 시도해 주세요.')
     }
     throw new Error('서버에 연결할 수 없습니다. 실행 상태와 연결 설정을 확인해 주세요.')
   }
-
-  const data: unknown = await response.json().catch(() => null)
   if (!response.ok) {
     const detail = typeof data === 'object' && data !== null && 'detail' in data ? data.detail : null
     throw new Error(typeof detail === 'string'

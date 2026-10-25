@@ -36,7 +36,10 @@ npm run dev
 ```powershell
 npm run lint
 npm run build
+npm test
 ```
+
+`npm test`는 로컬 HTTP 응답으로 정상·오류 JSON, 본문 연결 중단과 본문 수신 중 8초 제한을 확인한다.
 
 `npm run preview`는 빌드 결과를 4173번 포트에서 확인한다. 서버 연결에는 백엔드 실행도 필요하다.
 실제 배포 시 API 경로와 허용 출처를 맞추는 방법은 [아키텍처 문서](../docs/architecture.md)를 따른다.

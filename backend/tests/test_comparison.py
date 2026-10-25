@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -86,6 +88,8 @@ def test_zero_workdays_keeps_commute_filters_but_has_zero_fares(client):
     {"workdays": "20"}, {"monthly_limit_krw": -1}, {"deposit_limit_krw": -1},
     {"max_transfers": -1}, {"move_in_date": "2026-02-30"}, {"priority": "unknown"},
     {"office_id": "unavailable-office"}, {"unexpected": "value"},
+    {"move_in_date": 1793491200}, {"move_in_date": "1793491200"},
+    {"move_in_date": "2026-11-01T00:00:00Z"},
 ])
 def test_invalid_requests_are_rejected(client, changes):
     assert client.post("/api/compare", json=INPUT | changes).status_code == 422
@@ -139,3 +143,29 @@ def test_duplicate_demo_identifiers_are_rejected():
     data["listings"][1]["id"] = data["listings"][0]["id"]
     with pytest.raises(ValidationError, match="중복"):
         DemoData.model_validate(data)
+
+
+@pytest.mark.parametrize("overflow", [False, True])
+def test_route_duration_sum_is_validated_at_read_boundary(client, monkeypatch, tmp_path, overflow):
+    safe_max = 9_007_199_254_740_991
+    data = load_demo_data().model_dump(mode="json")
+    route = next(row for row in data["routes"] if (
+        row["office_id"] == "seoul-station" and row["listing_id"] == "demo-a"
+    ))
+    route["outbound"].update(minutes=safe_max if overflow else safe_max - 1, walk_minutes=0)
+    route["inbound"].update(minutes=1, walk_minutes=0)
+    path = tmp_path / "demo.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    monkeypatch.setattr("app.db.demo.DEMO_PATH", path)
+
+    catalog = client.get("/api/demo/catalog")
+    comparison = client.post("/api/compare", json=INPUT | {"max_commute_minutes": safe_max})
+    for response in (catalog, comparison):
+        assert response.status_code == (503 if overflow else 200)
+        if overflow:
+            assert response.json() == {"detail": "시연 데이터를 읽을 수 없습니다."}
+    if not overflow:
+        candidate = next(row for row in comparison.json()["candidates"] if (
+            row["listing"]["id"] == "demo-a"
+        ))
+        assert candidate["round_trip_minutes"] == safe_max

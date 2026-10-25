@@ -1,9 +1,11 @@
 from datetime import date
+from re import fullmatch
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-NonnegativeInt = Annotated[int, Field(ge=0, le=9_007_199_254_740_991, strict=True)]
+MAX_SAFE_INTEGER = 9_007_199_254_740_991
+NonnegativeInt = Annotated[int, Field(ge=0, le=MAX_SAFE_INTEGER, strict=True)]
 
 
 class Office(BaseModel):
@@ -40,6 +42,15 @@ class DemoRoute(BaseModel):
     office_id: str
     outbound: CommuteLeg | None
     inbound: CommuteLeg | None
+
+    @model_validator(mode="after")
+    def round_trip_is_safe(self):
+        if (
+            self.outbound is not None and self.inbound is not None
+            and self.outbound.minutes + self.inbound.minutes > MAX_SAFE_INTEGER
+        ):
+            raise ValueError("왕복 통근 시간은 안전 정수 범위를 넘을 수 없습니다.")
+        return self
 
 
 class DemoCatalog(BaseModel):
@@ -81,6 +92,15 @@ class ComparisonRequest(BaseModel):
     max_commute_minutes: NonnegativeInt
     max_transfers: NonnegativeInt
     priority: Literal["cost", "time"]
+
+    @field_validator("move_in_date", mode="before")
+    @classmethod
+    def require_date_without_time(cls, value):
+        if type(value) is date or (
+            isinstance(value, str) and fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", value)
+        ):
+            return value
+        raise ValueError("입주 희망일은 YYYY-MM-DD 형식이어야 합니다.")
 
 
 class Candidate(BaseModel):

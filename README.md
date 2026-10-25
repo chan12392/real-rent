@@ -96,7 +96,7 @@ $env:PATH = 'C:\Program Files\nodejs;' + $env:PATH
 
 | 위치 | 실행할 검사 |
 | --- | --- |
-| `frontend/` | `npm run lint`, `npm run build` |
+| `frontend/` | `npm run lint`, `npm run build`, `npm test` |
 | `backend/` | `uv run ruff check app tests`, `uv run python -m pytest` |
 | 저장소 루트 | `npm run test:dev` (포트 충돌 시 기존 서비스 보존) |
 
