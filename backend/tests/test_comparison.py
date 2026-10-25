@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -141,3 +143,29 @@ def test_duplicate_demo_identifiers_are_rejected():
     data["listings"][1]["id"] = data["listings"][0]["id"]
     with pytest.raises(ValidationError, match="중복"):
         DemoData.model_validate(data)
+
+
+@pytest.mark.parametrize("overflow", [False, True])
+def test_route_duration_sum_is_validated_at_read_boundary(client, monkeypatch, tmp_path, overflow):
+    safe_max = 9_007_199_254_740_991
+    data = load_demo_data().model_dump(mode="json")
+    route = next(row for row in data["routes"] if (
+        row["office_id"] == "seoul-station" and row["listing_id"] == "demo-a"
+    ))
+    route["outbound"].update(minutes=safe_max if overflow else safe_max - 1, walk_minutes=0)
+    route["inbound"].update(minutes=1, walk_minutes=0)
+    path = tmp_path / "demo.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    monkeypatch.setattr("app.db.demo.DEMO_PATH", path)
+
+    catalog = client.get("/api/demo/catalog")
+    comparison = client.post("/api/compare", json=INPUT | {"max_commute_minutes": safe_max})
+    for response in (catalog, comparison):
+        assert response.status_code == (503 if overflow else 200)
+        if overflow:
+            assert response.json() == {"detail": "시연 데이터를 읽을 수 없습니다."}
+    if not overflow:
+        candidate = next(row for row in comparison.json()["candidates"] if (
+            row["listing"]["id"] == "demo-a"
+        ))
+        assert candidate["round_trip_minutes"] == safe_max

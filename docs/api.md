@@ -102,6 +102,8 @@ GET /api/health
 | 시연 파일 누락·파손·형식 오류 | `503`, `{"detail":"시연 데이터를 읽을 수 없습니다."}` |
 | 네트워크·8초 초과·잘못된 응답 | 본문 수신까지 포함해 구분하여 오류 표시. 입력 유지 후 재시도 |
 
+시연 경로의 왕복 시간 합계도 안전 정수 범위여야 한다. 초과하면 시연 자료 오류로 `503`을 반환한다.
+
 서버 모델은 `backend/app/schemas/comparison.py`, HTTP 처리는 `api/comparison.py`,
 조회는 `db/demo.py`, 계산은 `domain/comparison.py`다.
 화면의 `frontend/src/features/comparison/types.ts`와 `api.ts`도 함께 변경한다.

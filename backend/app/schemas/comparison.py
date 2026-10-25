@@ -4,7 +4,8 @@ from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-NonnegativeInt = Annotated[int, Field(ge=0, le=9_007_199_254_740_991, strict=True)]
+MAX_SAFE_INTEGER = 9_007_199_254_740_991
+NonnegativeInt = Annotated[int, Field(ge=0, le=MAX_SAFE_INTEGER, strict=True)]
 
 
 class Office(BaseModel):
@@ -41,6 +42,15 @@ class DemoRoute(BaseModel):
     office_id: str
     outbound: CommuteLeg | None
     inbound: CommuteLeg | None
+
+    @model_validator(mode="after")
+    def round_trip_is_safe(self):
+        if (
+            self.outbound is not None and self.inbound is not None
+            and self.outbound.minutes + self.inbound.minutes > MAX_SAFE_INTEGER
+        ):
+            raise ValueError("왕복 통근 시간은 안전 정수 범위를 넘을 수 없습니다.")
+        return self
 
 
 class DemoCatalog(BaseModel):
