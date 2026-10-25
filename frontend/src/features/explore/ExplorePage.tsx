@@ -39,7 +39,8 @@ function restore(): {
       )
     ) {
       return {
-        conditions: { ...initial, ...raw.conditions },
+        conditions: { ...initial, ...raw.conditions,
+          ignored: raw.conditions.ignored ?? [], modes: raw.conditions.modes ?? {} },
         messages: raw.messages.slice(-100),
         selected: typeof raw.selected === "string" ? raw.selected : null,
         confirmed: raw.confirmed_conditions ?? null,
@@ -120,7 +121,7 @@ export function ExplorePage() {
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (conditionBar.current?.contains(target) || conditionEditor.current?.contains(target)) return;
-      setShowConditions(false);
+      closeConditions();
     };
     // Click follows input blur, so the existing value update runs before closing.
     // Capture also sees map clicks that Leaflet stops from bubbling.
@@ -136,7 +137,7 @@ export function ExplorePage() {
     !error &&
     JSON.stringify(conditions) === JSON.stringify(result.conditions);
 
-  async function update(next: Conditions, message = "", addMessage = true, confirmation = confirmed) {
+  async function update(next: Conditions, message = "", addMessage = true, confirmation = confirmed, submittedDraft?: string) {
     const resetting = next === initial;
     next = { ...next, ignored: (next.ignored ?? []).filter(k => next[k] === null) };
     const id = ++sequence.current;
@@ -169,7 +170,8 @@ export function ExplorePage() {
             { role: "assistant" as const, text: `야하~ ${data.reply}` },
           ].slice(-100),
         );
-      setInput("");
+      if (submittedDraft !== undefined)
+        setInput(current => current === submittedDraft ? "" : current);
     } catch (reason) {
       if (id === sequence.current)
         setError(
@@ -205,7 +207,7 @@ export function ExplorePage() {
   }, [messages, busy, selected, result]);
   function send(event: FormEvent) {
     event.preventDefault();
-    if (input.trim() && !busy) void update(conditions, input.trim());
+    if (input.trim() && !busy) void update(conditions, input.trim(), true, confirmed, input);
   }
   function change(key: keyof Conditions, value: unknown) {
     const next = { ...conditions, [key]: value };
@@ -225,6 +227,11 @@ export function ExplorePage() {
     setEditingCondition(key);
     setShowConditions(true);
     window.setTimeout(() => document.getElementById(`condition-${key}`)?.focus(), 0);
+  }
+  function closeConditions() {
+    const focused = document.activeElement;
+    if (focused instanceof HTMLElement && conditionEditor.current?.contains(focused)) focused.blur();
+    setShowConditions(false);
   }
   function reset() {
     if (!resetArmed) {
@@ -322,7 +329,7 @@ export function ExplorePage() {
             <div className="api-error" role="alert">
               {error}
               <button
-                onClick={() => void update(conditions, input, !!input)}
+                onClick={() => void update(conditions, input, !!input, confirmed, input)}
                 disabled={busy}
               >
                 다시 연결하기
@@ -384,8 +391,8 @@ export function ExplorePage() {
             </div>
           </section>
           {showConditions && (
-            <section ref={conditionEditor} className="condition-editor map-condition-editor" style={editorPosition} aria-label="조건 수정" onKeyDown={e => { if (e.key === "Escape") setShowConditions(false); }}>
-              <header><strong>{editingCondition === "priority" ? "추천 순서" : editingCondition === "workdays" ? "월 출근일" : editingCondition ? labels[editingCondition] : "조건 수정"}</strong><button onClick={() => setShowConditions(false)} aria-label="조건 설정 닫기">닫기 ×</button></header>
+            <section ref={conditionEditor} className="condition-editor map-condition-editor" style={editorPosition} aria-label="조건 수정" onKeyDown={e => { if (e.key === "Escape") closeConditions(); }}>
+              <header><strong>{editingCondition === "priority" ? "추천 순서" : editingCondition === "workdays" ? "월 출근일" : editingCondition ? labels[editingCondition] : "조건 수정"}</strong><button onClick={closeConditions} aria-label="조건 설정 닫기">닫기 ×</button></header>
               <p>{editingCondition === "priority" ? "비용 또는 왕복 통근 시간을 기준으로 정렬해요." : editingCondition === "workdays" ? "월 통근비 계산에 사용하는 출근 일수예요." : editingCondition === "office" ? "통근을 비교할 시연 직장 위치를 선택해 주세요." : "원하는 조건과 필수·선호를 설정해 주세요."}</p>
               {(Object.keys(labels) as Key[]).filter(key => !editingCondition || editingCondition === key).map((key) => (
                 <div className="condition-row" key={key}>

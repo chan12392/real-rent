@@ -126,6 +126,64 @@ def test_valid_workday_boundaries(client, days):
     assert home["commute"] == 3100 * days
 
 
+@pytest.mark.parametrize(("field", "message", "value", "question"), [
+    ("workdays", "0일", 0, "며칠"),
+    ("workdays", "20일", 20, "며칠"),
+    ("workdays", "31일", 31, "며칠"),
+    ("transfers", "0회", 0, "환승"),
+    ("transfers", "1회", 1, "환승"),
+    ("transfers", "10번", 10, "환승"),
+])
+def test_unit_answer_applies_only_to_the_current_question(client, field, message, value, question):
+    first = turn(client, CONDITIONS | {field: None})
+    assert first["stage"] == "collecting"
+    assert question in first["reply"]
+    result = turn(client, first["conditions"], message=message)
+    assert result["conditions"] == first["conditions"] | {field: value}
+    assert result["stage"] == "awaiting_confirmation"
+    assert result["confirmed_conditions"] is None
+
+
+@pytest.mark.parametrize(("field", "message"), [
+    ("workdays", "-1일"), ("workdays", "32일"), ("workdays", "20.5일"),
+    ("workdays", "20"), ("workdays", "20~21일"), ("workdays", "20일 1회"),
+    ("transfers", "-1회"), ("transfers", "11회"), ("transfers", "1.5회"),
+    ("transfers", "1"), ("transfers", "1~2회"), ("transfers", "1회 이상"),
+])
+def test_invalid_or_ambiguous_unit_answers_preserve_conditions(client, field, message):
+    first = turn(client, CONDITIONS | {field: None})
+    result = turn(client, first["conditions"], message=message)
+    assert result["conditions"] == first["conditions"]
+    assert result["stage"] == "clarifying"
+    assert result["recommended_ids"] == []
+
+
+@pytest.mark.parametrize(("changes", "message"), [
+    ({}, "20일"), ({}, "1회"),
+    ({"deposit": None, "workdays": None}, "20일"),
+    ({"budget": None, "transfers": None}, "1회"),
+    ({"office": None, "workdays": None, "ignored": ["office"]}, "20일"),
+    ({"workdays": None, "transfers": None}, "1회"),
+    ({"transfers": None, "priority": None, "ignored": ["transfers"]}, "1회"),
+    ({"move_in": None, "workdays": None}, "20일"),
+])
+def test_unit_answers_do_not_fill_other_missing_or_already_set_conditions(client, changes, message):
+    first = turn(client, CONDITIONS | changes)
+    result = turn(client, first["conditions"], message=message)
+    assert result["conditions"] == first["conditions"]
+
+
+@pytest.mark.parametrize(("field", "message"), [("workdays", "20일"), ("transfers", "1회")])
+def test_unit_answers_do_not_bypass_a_pending_confirmation(client, field, message):
+    conditions = CONDITIONS | {field: None}
+    first = turn(client, conditions, message="월 80")
+    assert first["pending_conditions"] is not None
+    result = turn(client, first["conditions"], message=message,
+                  pending_conditions=first["pending_conditions"])
+    assert result["conditions"] == first["conditions"]
+    assert result["recommended_ids"] == []
+
+
 def test_priority_can_change_in_conversation_without_default_or_conflicting_guess(client):
     result = turn(client, message="시간 우선")
     assert result["conditions"]["priority"] == "time"
