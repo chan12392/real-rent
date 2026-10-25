@@ -108,4 +108,120 @@ GET /api/health
 조회는 `db/demo.py`, 계산은 `domain/comparison.py`다.
 화면의 `frontend/src/features/comparison/types.ts`와 `api.ts`도 함께 변경한다.
 실제 DB·교통 제공자로 교체할 때 이 입력·출력과 순수 계산 함수를 재사용한다.
-현재 AI·자연어·주소 검색·캐시·저장 API는 없다. 전체 스키마는 실행 중인 서버의 `/docs`를 기준으로 한다.
+실제 주소 검색·캐시·저장 API는 없다. 대화 시제품은 아래 `/api/explore` 규약을 따른다.
+
+## 작업 브랜치 추가: POST /api/explore
+
+기존 `/api/compare` 및 데이터는 유지한다. 새 웹 시제품 전용 규약이다.
+요청은 `{message: string(최대 2000자), conditions: ExploreConditions}`이며 message 기본값은 빈 문자열이다.
+조건 키는 `deposit`, `budget`(원 단위 정수), `office`(강남역/서울역/여의도역),
+`minutes`(편도 도보 포함 분), `move_in`(ISO 날짜), `kind`(원룸/오피스텔/빌라),
+`transfers`(편도 환승), `workdays`(0~31의 정수 또는 null), `priority`(cost/time 또는 null),
+`modes`(조건별 required/preferred)다. 미입력은 null이며 출근일·우선순위를 임의로 채우지 않는다.
+office는 계산 대상을 고르는 선택이며 선호 판정에는 넣지 않는다.
+별도 지정이 없으면 보증금·월 예산·입주일은 필수, 통근·유형·환승은 선호다.
+회사 위치는 추천에 반드시 필요하며 제한 해제로 생략할 수 없다.
+
+LangGraph의 extract → respond가 규칙 기반 조건 추출·검증·추가 질문·확인을 처리한다.
+확인된 조건만 compare → explain으로 진행해 계산·정렬·매물별 근거 검색을 수행한다.
+모델 선정·연결은 보류 중이며 외부 모델을 호출하지 않는다. 금액(천만/1000만/1억 5천만),
+직장, 분 단위 통근, ISO 입주일, 유형, 환승 없이/환승 1회, 월 출근일 표현을 지원한다.
+모호한 문장은 재질문한다. 연도 없는 입주일은 추측하지 않는다.
+
+응답은 `{synthetic:true,note,conditions,reply,homes,partial,pending_conditions,undone,
+stage,confirmed_conditions,recommended_ids,exclusion_summary}`.
+`homes`는 `data/demo/explore.json`의 합성 매물 12개 전체다. 확인 뒤 비용 우선이면
+월 지출→왕복 통근 시간→ID, 시간 우선이면 왕복 통근 시간→월 지출→ID로 정렬한다.
+추천 후보는 기존 필수/선호 판정을 통과한 최대 3개이며 `recommended_ids`에 순서대로 반환한다.
+2026-10-23 대표님 결정으로 필수/선호 구분과 선호 절반 이상 충족 정책을 유지한다.
+각 집에 `status`(idle/good/so-so/bad/unknown), `checks`, `reasons`, `commute`, `total`,
+`route`, `minutes`, `transfers`, `round_trip_minutes`, `recommended`를 추가한다.
+방향별 시간·환승 모두 상한 이하여야 해당 항목을 충족한다.
+월 통근비=(출근 요금+퇴근 요금)×출근일, 월 지출=월세+관리비+월 통근비.
+정보가 없으면 null. 출근 0일도 경로 검증과 통근 조건은 유지한다.
+
+조건 없음=idle. 확인된 필수 위반=bad, 그 외 관리비/선택 직장 경로 누락=unknown,
+그 외 입력한 선호의 절반 이상 충족=good, 절반 미만=so-so. 선호가 없으면 필수 충족으로 good.
+정보 부족은 충족률 판정 전에 unknown 처리하며, 미충족 선호와 초과량도 reasons에 남긴다. 필수 위반과 미확인이 함께 있으면 bad와 미확인 이유를 함께 표시한다.
+`partial`은 필요한 조건의 누락 여부다. 확인 전에는 모든 집을 idle로 반환하며
+계산값·경로는 null, checks와 추천 목록은 빈 배열이다. 원본 routes는 노출하지 않는다.
+조건이 변경되면 기존 확인은 해제되고 확인 전 상태로 돌아간다.
+
+입력 형식 오류는 422, 시연 파일 오류·중복 ID·잘못된 금액/경로 형식은 503이다.
+API 상태는 요청에 실어 보내며 서버에 공용 사용자 상태를 두지 않는다.
+화면은 버전 지정 localStorage에 대화·조건·선택 집을 보관한다. 대화는 최대 최근 100개 메시지다.
+다른 브라우저/기기와 공유하지 않는다. 선택 집은 조건 변경 후에도 유지된다.
+
+### 대화 조건 해석 확장
+
+`ExploreConditions.ignored`(기본 [])는 사용자가 명시적으로 해제한 조건 키다.
+null인 해제 조건은 다시 묻지 않고 partial 판정에서도 미입력과 구분한다.
+값을 다시 입력하면 ignored에서 제거한다. 키·단위·기존 필수/선호 기본값은 유지한다.
+
+`POST /api/explore` 요청에 선택적으로 `previous_conditions`와 `pending_conditions`를 보낼 수 있다.
+응답은 `pending_conditions`(확인할 전체 조건 또는 null), `undone`(직전 변경 복원 여부)을 추가한다.
+상태는 여전히 요청마다 전달하며 서버 공용 메모리에 사용자 대화를 저장하지 않는다.
+
+- 명확한 금액/단위, 시간(한 시간 반 등), 환승·갈아타기 동의어는 조건 초안에 반영한다.
+- ‘월 80’, ‘보증금 천’, ‘1000/60’은 만 원 단위 후보를 제안하고 확인 전에는 반영하지 않는다.
+  월 한도는 월세만이 아니라 관리비·통근비 포함임을 안내한다.
+- ‘강남으로 출근’은 강남역인지 확인한다. ‘다음 달 초’와 연도 없는 날짜도 해석한 ISO 날짜를 확인한다.
+  기준일은 Asia/Seoul의 현재 날짜이며, 날짜를 임의로 확정하지 않는다.
+- ‘원룸 아니어도’, ‘환승 상관없어’는 해당 조건 해제. ‘예산만 70만 원’은 나머지 조건 유지.
+- ‘통근은 길어도’는 통근을 선호로 바꾸고 허용 시간을 질문한다.
+- 확인 응답 ‘네/응/이대로 적용’, 거절 ‘아니요’, ‘직전 변경 취소/방금 말한 건 취소’를 지원한다.
+  확인 대기 중 단순 ‘취소’는 제안 취소이며 이전 확정 조건을 되돌리지 않는다.
+
+브라우저는 확정 조건 변경 이력을 최근 20개까지 저장해 여러 번 되돌릴 수 있다.
+조건 요약에서 필수/선호/직장·출근일/미입력을 표시하며 각 조건을 눌러 편집할 수 있다.
+
+### 추천 확인과 조건 변경
+
+| stage | 의미·다음 동작 |
+| --- | --- |
+| collecting | 필요한 조건만 추가 질문. 출근일·우선순위도 미입력 시 질문 |
+| clarifying | 모호하거나 잘못된 표현. pending_conditions가 있으면 해석한 값을 확인/취소 |
+| awaiting_confirmation | 조건 입력 완료. 전체 조건과 필수/선호를 보여주고 확인 대기 |
+| ready | 확인한 조건으로 계산·추천·근거 검색 완료 |
+
+`confirmed_conditions`는 사용자가 확인한 전체 조건 객체 또는 null이다.
+화면 확인 버튼은 현재 `conditions`와 같은 객체를 여기에 넣어 요청한다.
+서버는 두 객체가 같고, 필요한 조건이 있으며, 모호한 제안이 없을 때만 계산한다.
+이전 확인 객체를 보내면서 다른 조건을 수정하면 확인이 해제된다.
+완성된 조건에 대한 ‘네/확인/이대로 찾기’도 확인으로 처리한다.
+모호한 값의 ‘네’는 그 값만 적용하며 전체 추천 확인은 별도로 받는다.
+
+조건 예시:
+
+```json
+{
+  "deposit": 30000000, "budget": 1100000, "office": "강남역",
+  "minutes": 90, "move_in": "2026-12-01", "transfers": 3,
+  "workdays": 20, "priority": "cost"
+}
+```
+
+이 조건만 전달하면 awaiting_confirmation, 같은 객체를 confirmed_conditions에도 전달하면 ready다.
+비용 우선 기대 후보는 home-07 → home-05 → home-01, 시간 우선은 home-08 → home-11 → home-10이다.
+주거 유형은 선택 조건이며 사용자가 명시적으로 해제한 기존 조건도 다시 묻지 않는다.
+주 단위 출근일, 음수/소수 시간·환승, 상한으로 해석할 수 없는 부정/하한 표현은 재질문한다.
+금액은 원 단위 정수로 검증하며 소수 원을 반올림해 적용하지 않는다.
+
+### 문서 근거와 실패 구분
+
+각 집의 `evidence`는 `{document_id,listing_id,title,quote,source,as_of,synthetic}` 배열이다.
+`data/references/explore.json`에서 해당 매물 ID에 해당하는 문서만 찾고 원문을 그대로 반환한다.
+현재 12개 문서는 기존 합성 매물의 관리비 포함 항목과 자료 한계를 옮긴 개발용 자료다.
+벡터 검색·LLM 생성은 연결하지 않았으며 실제 매물이나 검증된 계약 문서가 아니다.
+
+`evidence_status`: found(근거 있음), missing(해당 매물 문서 없음),
+unavailable(파일 누락/파손/형식 오류), not_searched(조건 확인 전).
+missing/unavailable이어도 비교 결과는 유지하고 화면에 확인 불가 사유를 표시한다.
+
+`exclusion_summary`는 conditions(필수 미달), route_failed(조회 실패),
+route_unknown(경로 자료 미확인), management_unknown(관리비 미확인)의 건수다.
+한 매물이 여러 원인에 포함될 수 있다. 후보가 없으면 원인을 설명하고 바꿀 조건을 질문한다.
+조건을 자동으로 완화하지 않는다. 현재 합성 자료의 누락을 실제 API 실패로 표시하지 않는다.
+개발 2는 알려진 조회 실패를 매물의 `route_errors[office]`에 timeout/unavailable/provider_error/
+invalid_response 코드로 전달할 수 있다. 실패 표시 또는 편도 누락이 있으면 해당 경로를 사용하지 않는다.
+`route_errors` 원본은 응답에 노출하지 않는다. 실제 교통 API 호출은 아직 미연결이다.

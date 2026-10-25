@@ -1,0 +1,627 @@
+{
+  "synthetic": true,
+  "note": "모든 매물·가격·경로는 합성 시연값입니다. 지도는 실제 위치·거리를 나타내지 않습니다.",
+  "homes": [
+    {
+      "id": "home-01",
+      "name": "망원 원룸",
+      "area": "망원",
+      "kind": "원룸",
+      "size": 19,
+      "deposit": 5000000,
+      "rent": 480000,
+      "management": 50000,
+      "includes": [
+        "인터넷",
+        "공용 청소"
+      ],
+      "available": "2026-11-01",
+      "x": 18,
+      "y": 26,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 48,
+            "fare": 1550,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 53,
+            "fare": 1550,
+            "transfers": 1
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 27,
+            "fare": 1550,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 32,
+            "fare": 1550,
+            "transfers": 2
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 30,
+            "fare": 1550,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 35,
+            "fare": 1550,
+            "transfers": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "home-02",
+      "name": "합정 오피스텔",
+      "area": "합정",
+      "kind": "오피스텔",
+      "size": 24,
+      "deposit": 10000000,
+      "rent": 620000,
+      "management": 90000,
+      "includes": [
+        "공용 청소"
+      ],
+      "available": "2026-11-15",
+      "x": 25,
+      "y": 39,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 42,
+            "fare": 1700,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 47,
+            "fare": 1700,
+            "transfers": 2
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 25,
+            "fare": 1700,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 30,
+            "fare": 1700,
+            "transfers": 0
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 24,
+            "fare": 1700,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 29,
+            "fare": 1700,
+            "transfers": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "home-03",
+      "name": "연남 빌라",
+      "area": "연남",
+      "kind": "빌라",
+      "size": 33,
+      "deposit": 5000000,
+      "rent": 520000,
+      "management": null,
+      "includes": [
+        "인터넷",
+        "공용 청소"
+      ],
+      "available": "2026-12-01",
+      "x": 32,
+      "y": 18,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 50,
+            "fare": 1850,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 55,
+            "fare": 1850,
+            "transfers": 0
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 32,
+            "fare": 1850,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 37,
+            "fare": 1850,
+            "transfers": 1
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 35,
+            "fare": 1850,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 40,
+            "fare": 1850,
+            "transfers": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "home-04",
+      "name": "공덕 원룸",
+      "area": "공덕",
+      "kind": "원룸",
+      "size": 21,
+      "deposit": 15000000,
+      "rent": 720000,
+      "management": 80000,
+      "includes": [
+        "공용 청소"
+      ],
+      "available": "2026-11-01",
+      "x": 40,
+      "y": 37,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 36,
+            "fare": 1550,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 41,
+            "fare": 1550,
+            "transfers": 1
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 15,
+            "fare": 1550,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 20,
+            "fare": 1550,
+            "transfers": 2
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 20,
+            "fare": 1550,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 25,
+            "fare": 1550,
+            "transfers": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "home-05",
+      "name": "신길 오피스텔",
+      "area": "신길",
+      "kind": "오피스텔",
+      "size": 27,
+      "deposit": 8000000,
+      "rent": 450000,
+      "management": 60000,
+      "includes": [
+        "인터넷",
+        "공용 청소"
+      ],
+      "available": "2026-11-15",
+      "x": 24,
+      "y": 72,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 40,
+            "fare": 1700,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 45,
+            "fare": 1700,
+            "transfers": 2
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 25,
+            "fare": 1700,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 30,
+            "fare": 1700,
+            "transfers": 0
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 16,
+            "fare": 1700,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 21,
+            "fare": 1700,
+            "transfers": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "home-06",
+      "name": "당산 빌라",
+      "area": "당산",
+      "kind": "빌라",
+      "size": 36,
+      "deposit": 10000000,
+      "rent": 550000,
+      "management": 50000,
+      "includes": [
+        "공용 청소"
+      ],
+      "available": "2026-12-01",
+      "x": 14,
+      "y": 54,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 46,
+            "fare": 1850,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 51,
+            "fare": 1850,
+            "transfers": 0
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 30,
+            "fare": 1850,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 35,
+            "fare": 1850,
+            "transfers": 1
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 13,
+            "fare": 1850,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 18,
+            "fare": 1850,
+            "transfers": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "home-07",
+      "name": "봉천 원룸",
+      "area": "봉천",
+      "kind": "원룸",
+      "size": 18,
+      "deposit": 5000000,
+      "rent": 420000,
+      "management": 40000,
+      "includes": [
+        "인터넷",
+        "공용 청소"
+      ],
+      "available": "2026-11-01",
+      "x": 46,
+      "y": 83,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 38,
+            "fare": 1550,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 43,
+            "fare": 1550,
+            "transfers": 1
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 42,
+            "fare": 1550,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 47,
+            "fare": 1550,
+            "transfers": 2
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 35,
+            "fare": 1550,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 40,
+            "fare": 1550,
+            "transfers": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "home-08",
+      "name": "사당 오피스텔",
+      "area": "사당",
+      "kind": "오피스텔",
+      "size": 25,
+      "deposit": 20000000,
+      "rent": 700000,
+      "management": 70000,
+      "includes": [
+        "공용 청소"
+      ],
+      "available": "2026-11-15",
+      "x": 59,
+      "y": 75,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 22,
+            "fare": 1700,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 27,
+            "fare": 1700,
+            "transfers": 2
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 30,
+            "fare": 1700,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 35,
+            "fare": 1700,
+            "transfers": 0
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 36,
+            "fare": 1700,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 41,
+            "fare": 1700,
+            "transfers": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "home-09",
+      "name": "왕십리 빌라",
+      "area": "왕십리",
+      "kind": "빌라",
+      "size": 31,
+      "deposit": 10000000,
+      "rent": 580000,
+      "management": 50000,
+      "includes": [
+        "인터넷",
+        "공용 청소"
+      ],
+      "available": "2026-12-01",
+      "x": 65,
+      "y": 28,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 29,
+            "fare": 1850,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 34,
+            "fare": 1850,
+            "transfers": 0
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 23,
+            "fare": 1850,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 28,
+            "fare": 1850,
+            "transfers": 1
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 42,
+            "fare": 1850,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 47,
+            "fare": 1850,
+            "transfers": 2
+          }
+        }
+      }
+    },
+    {
+      "id": "home-10",
+      "name": "성수 원룸",
+      "area": "성수",
+      "kind": "원룸",
+      "size": 23,
+      "deposit": 15000000,
+      "rent": 680000,
+      "management": 90000,
+      "includes": [
+        "공용 청소"
+      ],
+      "available": "2026-11-01",
+      "x": 76,
+      "y": 42,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 26,
+            "fare": 1550,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 31,
+            "fare": 1550,
+            "transfers": 1
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 35,
+            "fare": 1550,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 40,
+            "fare": 1550,
+            "transfers": 2
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 48,
+            "fare": 1550,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 53,
+            "fare": 1550,
+            "transfers": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "home-11",
+      "name": "잠실 오피스텔",
+      "area": "잠실",
+      "kind": "오피스텔",
+      "size": 29,
+      "deposit": 30000000,
+      "rent": 880000,
+      "management": 100000,
+      "includes": [
+        "인터넷",
+        "공용 청소"
+      ],
+      "available": "2026-11-15",
+      "x": 88,
+      "y": 63,
+      "routes": {
+        "강남역": {
+          "outbound": {
+            "minutes": 24,
+            "fare": 1700,
+            "transfers": 1
+          },
+          "inbound": {
+            "minutes": 29,
+            "fare": 1700,
+            "transfers": 2
+          }
+        },
+        "서울역": {
+          "outbound": {
+            "minutes": 45,
+            "fare": 1700,
+            "transfers": 2
+          },
+          "inbound": {
+            "minutes": 50,
+            "fare": 1700,
+            "transfers": 0
+          }
+        },
+        "여의도역": {
+          "outbound": {
+            "minutes": 55,
+            "fare": 1700,
+            "transfers": 0
+          },
+          "inbound": {
+            "minutes": 60,
+            "fare": 1700,
+            "transfers": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "home-12",
+      "name": "신림 빌라",
+      "area": "신림",
+      "kind": "빌라",
+      "size": 20,
+      "deposit": 5000000,
+      "rent": 400000,
+      "management": 40000,
+      "includes": [
+        "공용 청소"
+      ],
+      "available": "2026-12-01",
+      "x": 35,
+      "y": 87,
+      "routes": {
+        "강남역": null,
+        "서울역": null,
+        "여의도역": null
+      }
+    }
+  ]
+}

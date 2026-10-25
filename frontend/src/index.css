@@ -1,15 +1,39 @@
+@font-face {
+  font-family: "Pretendard Variable";
+  src: url("/fonts/pretendard/PretendardVariable.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 45 920;
+  font-display: swap;
+}
 :root {
-  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
-  color: #102b4c;
-  background: #f3f8fa;
+  font-family: "Pretendard Variable", Pretendard, sans-serif;
+  color: #333333;
+  background: #ffffff;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-* { box-sizing: border-box; }
-body { margin: 0; min-width: 320px; }
-button, input, select { font: inherit; }
-:is(button, input, select, a, summary):focus-visible { outline: 3px solid #102b4c; outline-offset: 4px; }
-h1, h2, h3, p { margin: 0; }
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  min-width: 360px;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+:is(button, input, select, a, summary):focus-visible {
+  outline: 3px solid #32654d;
+  outline-offset: 4px;
+}

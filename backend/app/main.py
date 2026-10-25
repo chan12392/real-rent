@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.comparison import router as comparison_router
+from app.api.explore import router as explore_router
 from app.api.health import router as health_router
 from app.core.config import get_cors_origins
 
@@ -16,6 +17,7 @@ def create_app() -> FastAPI:
     )
     application.include_router(health_router, prefix="/api")
     application.include_router(comparison_router, prefix="/api")
+    application.include_router(explore_router, prefix="/api")
     return application
 
 
