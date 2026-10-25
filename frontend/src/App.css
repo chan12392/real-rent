@@ -538,3 +538,13 @@ table.results { width: 100%; border-collapse: collapse; font-size: 14px; }
   .living-table td.none, .living-table td[data-label='범위'], .living-table td[data-label='비고'] { display: none; }
   .living-table td.basis { grid-column: 1 / -1; font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 }
+/* 통근 중심 데모: 목적지와 후보 간 시간 차이를 먼저 읽는다. */
+.destination-note { padding: 16px; margin: 0 0 16px; border: 1px solid #96836f; border-radius: 12px; background: #fff7d9; line-height: 1.6; }
+.destination-note p { margin: 6px 0 0; }
+.destination-note select { max-width: 100%; padding: 8px; border-radius: 8px; background: white; color: #382c24; }
+.commute-primary { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 18px 0 8px; }
+.commute-primary > div { display: flex; flex-direction: column; padding: 16px; border-radius: 12px; background: #e5f2db; gap: 6px; }
+.commute-primary strong { font-size: 2rem; }
+.commute-primary small { line-height: 1.5; }
+.commute-difference { padding: 14px; background: #fff3c7; border-radius: 10px; margin: 12px 0; line-height: 1.6; }
+.commute-difference p { margin: 4px 0; }

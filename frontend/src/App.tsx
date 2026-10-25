@@ -15,6 +15,7 @@ import { useSkin } from './lib/skin-context'
 import './App.css'
 
 type Load<T> =
+  | { kind: 'idle' }
   | { kind: 'loading' }
   | { kind: 'ok'; data: T }
   | { kind: 'error'; message: string; detail: string[] }
@@ -71,6 +72,7 @@ function App() {
   const [listings, setListings] = useState<Load<Listing[]>>({ kind: 'loading' })
   const [result, setResult] = useState<Load<CompareResponse>>({ kind: 'loading' })
   const [form, setForm] = useState<FormState>(DEFAULT_FORM)
+  const [dirty, setDirty] = useState(false)
   const [overrides, setOverrides] = useState<Record<string, number>>({})
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [askId, setAskId] = useState<string | null>(null)
@@ -104,6 +106,7 @@ function App() {
 
   const run = useCallback(
     (req: CompareRequest) => {
+      setDirty(false)
       setResult({ kind: 'loading' })
       return fetchCompare(req)
     },
@@ -132,7 +135,20 @@ function App() {
 
   // 대화에서 사용자가 확인한 조건만 폼에 들어온다. 비교는 별도 버튼(chatCompare)으로만 실행한다.
   function applyConfirmed(changes: Change[]) {
+    invalidateResults()
     setForm((prev) => applyChanges(prev, changes))
+  }
+
+  function invalidateResults() {
+    seq.current += 1
+    setDirty(true)
+    setResult({ kind: 'idle' })
+    setSelectedId(null)
+  }
+
+  function changeForm(next: FormState) {
+    invalidateResults()
+    setForm(next)
   }
 
   const chatCompare = useCallback(async (): Promise<ChatCompareOutcome> => {
@@ -202,12 +218,12 @@ function App() {
             {mascot && <MascotDeco face="excited" className="hero-mascot" />}
             <div className="hero-bubble">
               <h1>
-                월세만이 아니라 관리비·통근비까지 더한
+                출퇴근이 편해지는 동네,
                 <br />
-                진짜 거주비로 집을 비교하세요
+                거주비까지 비교해 고르세요
               </h1>
               <p className="lede">
-                조건을 넣으면 12개 시연 매물이 통과·탈락·판단 불가로 나뉘고, 순위와 근거가 함께 나옵니다.
+                같은 회사로 출근할 때 동네별 통근 시간과 월 지출이 얼마나 달라지는지 비교하세요.
               </p>
             </div>
           </div>
@@ -216,7 +232,8 @@ function App() {
 
       <main id="main" className="layout">
         <aside className="side">
-          <ConditionPanel busy={busy} form={form} onFormChange={setForm} onSubmit={submitForm} />
+          <div className="destination-note" role="note"><strong>통근 목적지: 시연 회사 A · 목적지 미지정</strong><p>12개 매물은 동일한 가상 회사로 향하는 고정 통근값입니다. 실제 회사 주소·노선·시간대 조회는 지원하지 않습니다.</p></div>
+          <ConditionPanel busy={busy} form={form} onFormChange={changeForm} onSubmit={submitForm} />
         </aside>
 
         <div className="content">
@@ -225,6 +242,8 @@ function App() {
           <section className="panel" aria-labelledby="sum-title" aria-busy={busy}>
             <p className="step">2 · 결과 비교</p>
             <h2 id="sum-title">추천 결과</h2>
+            <p className="hint">시연 회사 A 기준 · 합성 통근값 · 실제 교통 조회 아님</p>
+            {dirty && <p className="state-box" role="status">조건이 변경됐습니다. 이전 결과를 숨겼습니다. ‘이 조건으로 비교하기’를 눌러 주세요.</p>}
 
             <div aria-live="polite">
               {result.kind === 'loading' && (

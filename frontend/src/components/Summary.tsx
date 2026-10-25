@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import type { CompareResponse, CompareResult, Status } from '../lib/api'
-import { STATUS_LABEL, STATUS_MARK, krw, legText, manwon } from '../lib/format'
+import { STATUS_LABEL, STATUS_MARK, krw } from '../lib/format'
+import { commuteDifference, duration } from '../lib/commuteComparison'
 import { useSkin } from '../lib/skin-context'
 
 export function StatusChip({ status }: { status: Status }) {
@@ -138,8 +140,12 @@ type TopProps = {
 
 export function TopPicks({ data, selectedId, onSelect }: TopProps) {
   const { skin, failSkin } = useSkin()
+  const [baselineId, setBaselineId] = useState('')
   const byId = new Map(data.results.map((r) => [r.listing_id, r]))
   const picks = data.recommended.map((id) => byId.get(id)).filter((r): r is CompareResult => !!r)
+  const comparable = data.results.filter((r) => r.cost.monthly_total_krw != null && r.commute.round_trip_minutes != null)
+  const cheapest = [...comparable.filter((r) => r.status === 'pass')].sort((a, b) => a.cost.monthly_total_krw! - b.cost.monthly_total_krw!)[0]
+  const baseline = comparable.find((r) => r.listing_id === baselineId) ?? cheapest
   if (picks.length === 0) {
     return (
       <div className="empty">
@@ -161,6 +167,14 @@ export function TopPicks({ data, selectedId, onSelect }: TopProps) {
     )
   }
   return (
+    <>
+    {baseline && <div className="destination-note">
+      <label htmlFor="commute-baseline"><strong>어느 집과 비교할까요?</strong></label>{' '}
+      <select id="commute-baseline" value={baseline.listing_id} onChange={(e) => setBaselineId(e.target.value)}>
+        {comparable.map((r) => <option key={r.listing_id} value={r.listing_id}>{r.listing_id} · {r.dong} · {STATUS_LABEL[r.status]}</option>)}
+      </select>
+      <p className="hint">기본 기준은 조건을 통과한 최저 월 지출 매물입니다. 탈락 매물도 비교 기준으로 선택할 수 있습니다. 월 {data.conditions.office_days}일 출근 · 왕복 합계 기준</p>
+    </div>}
     <ol className="top3">
       {picks.map((r) => (
         <li key={r.listing_id} className={selectedId === r.listing_id ? 'pick selected' : 'pick'}>
@@ -177,37 +191,37 @@ export function TopPicks({ data, selectedId, onSelect }: TopProps) {
               </p>
             </div>
           </div>
-          {/* 금액 카드 묶음: 같은 .total 블록을 추가하면 나란히 놓인다. */}
+          <div className="commute-primary" aria-label="출퇴근 요약">
+            <div><span>출근</span><strong>{r.commute.outbound?.minutes ?? '미확인'}분</strong><small>환승 {r.commute.outbound?.transfers ?? '미확인'}회 · 도보 {r.commute.outbound?.walk_minutes ?? '미확인'}분</small></div>
+            <div><span>퇴근</span><strong>{r.commute.return?.minutes ?? '미확인'}분</strong><small>환승 {r.commute.return?.transfers ?? '미확인'}회 · 도보 {r.commute.return?.walk_minutes ?? '미확인'}분</small></div>
+          </div>
+          <p className="hint">도보는 통근 총시간에 포함 · 노선·배차·대기 상세 미제공</p>
+          {baseline && <Difference base={baseline} candidate={r} days={data.conditions.office_days} />}
           <div className="pick-figures">
             <p className="total">
               <span>월 지출 합계</span>
               <strong>{krw(r.cost.monthly_total_krw)}</strong>
-              <em>{manwon(r.cost.monthly_total_krw)}</em>
+              <em>월세 + 관리비 + 통근비</em>
             </p>
-            <LivingFigure r={r} />
           </div>
-          <LivingLine r={r} />
-          <CostBar r={r} />
-          <dl className="facts">
-            <div>
-              <dt>초기 필요 현금</dt>
-              <dd>{krw(r.cost.initial_cash_krw)}</dd>
-            </div>
-            <div>
-              <dt>거주 기간 총지출</dt>
-              <dd>{krw(r.cost.stay_total_krw)}</dd>
-            </div>
-            <div>
-              <dt>통근</dt>
-              <dd>{legText(r)}</dd>
-            </div>
-          </dl>
-          <ScoreAxes scores={r.scores} />
           <button type="button" className="link" onClick={() => onSelect(r.listing_id)}>
             상세 보기
           </button>
         </li>
       ))}
     </ol>
+    </>
   )
+}
+
+function Difference({ base, candidate, days }: { base: CompareResult; candidate: CompareResult; days: number }) {
+  if (base.listing_id === candidate.listing_id) return <p className="commute-difference">비교 기준 매물 · {base.listing_id} {base.dong}</p>
+  const diff = commuteDifference(base, candidate, days)
+  if (!diff) return <p>비교에 필요한 비용·통근값 미확인</p>
+  return <div className="commute-difference">
+    <strong>{base.listing_id} {base.dong} 대비</strong>
+    <p>월 지출 {diff.cost === 0 ? '동일' : `${krw(Math.abs(diff.cost))} ${diff.cost > 0 ? '증가' : '감소'}`}</p>
+    <p>하루 왕복 {diff.dailyMinutes === 0 ? '동일' : `${duration(diff.dailyMinutes)} ${diff.dailyMinutes > 0 ? '단축' : '증가'}`}</p>
+    <p>월 통근 {diff.monthlyMinutes === 0 ? '차이 없음' : `${duration(diff.monthlyMinutes)} ${diff.monthlyMinutes > 0 ? '절약' : '증가'}`} · 월 {days}일 기준</p>
+  </div>
 }

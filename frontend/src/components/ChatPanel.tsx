@@ -175,6 +175,7 @@ export function ChatPanel({ current, onApply, onCompare }: Props) {
     <section className={`panel chat chat-${persona.id}`} aria-labelledby="chat-title">
       <p className="step">대화 입력</p>
       <h2 id="chat-title">{persona.panelTitle}</h2>
+      <p className="destination-note" role="note">목적지는 시연 회사 A(위치 미지정)로 고정돼 있습니다. 서울역 등 회사·역 이름을 말해도 목적지는 변경되지 않습니다. 시간·환승·예산 조건만 확인 후 반영합니다.</p>
 
       <div className="chat-body">
         <div className="chat-char">
@@ -207,6 +208,7 @@ export function ChatPanel({ current, onApply, onCompare }: Props) {
               </li>
             ))}
           </ol>
+          <p className="hint">대화는 이전 조건의 기록도 포함합니다. 현재 비교 결과는 아래 ‘추천 결과’에서 확인하세요.</p>
 
           {pending && (
             <div className="cand-card" role="group" aria-label="조건 확인">
