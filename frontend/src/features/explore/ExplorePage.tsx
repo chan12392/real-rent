@@ -112,6 +112,7 @@ export function ExplorePage() {
   const [editingCondition, setEditingCondition] = useState<Key | "workdays" | "priority" | null>(null);
   const [storageError, setStorageError] = useState(false);
   const sequence = useRef(0);
+  const retryRequest = useRef<(() => void) | null>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
   const conditionBar = useRef<HTMLElement>(null);
   const conditionEditor = useRef<HTMLElement>(null);
@@ -139,15 +140,16 @@ export function ExplorePage() {
 
   async function update(next: Conditions, message = "", addMessage = true, confirmation = confirmed, submittedDraft?: string) {
     const resetting = next === initial;
-    next = { ...next, ignored: (next.ignored ?? []).filter(k => next[k] === null) };
+    const requestConditions = { ...next, ignored: (next.ignored ?? []).filter(k => next[k] === null) };
     const id = ++sequence.current;
+    retryRequest.current = null;
     setBusy(true);
     setError("");
     try {
       const data = await requestApi("/explore", isResult, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conditions: next, message,
+        body: JSON.stringify({ conditions: requestConditions, message,
           previous_conditions: resetting ? null : history.at(-1) ?? null,
           pending_conditions: resetting || (addMessage && !message) ? null : pending,
           confirmed_conditions: resetting ? null : confirmation,
@@ -173,12 +175,14 @@ export function ExplorePage() {
       if (submittedDraft !== undefined)
         setInput(current => current === submittedDraft ? "" : current);
     } catch (reason) {
-      if (id === sequence.current)
+      if (id === sequence.current) {
+        retryRequest.current = () => void update(next, message, addMessage, confirmation, submittedDraft);
         setError(
           reason instanceof Error
             ? reason.message
             : "잠시 후 다시 시도해 주세요.",
         );
+      }
     } finally {
       if (id === sequence.current) setBusy(false);
     }
@@ -329,7 +333,7 @@ export function ExplorePage() {
             <div className="api-error" role="alert">
               {error}
               <button
-                onClick={() => void update(conditions, input, !!input, confirmed, input)}
+                onClick={() => retryRequest.current?.()}
                 disabled={busy}
               >
                 다시 연결하기
