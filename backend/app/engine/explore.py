@@ -166,14 +166,21 @@ def extract(state: State) -> dict:
     missing = next(
         (
             key
-            for key in ["deposit", "budget", "office", "minutes", "move_in", "kind"]
-            if c.get(key) is None and key not in ignored
+            for key in [
+                "deposit", "budget", "office", "minutes", "move_in",
+                "workdays", "transfers", "priority",
+            ]
+            if c.get(key) is None and (key == "office" or key not in ignored)
         ),
         None,
     )
     if missing in ("deposit", "budget") and re.fullmatch(NUMBER + r"원?", text):
         if "원" in text or "만" in text or "억" in text:
             text = ("보증금 " if missing == "deposit" else "월 예산 ") + text
+    if not pending and missing == "workdays" and re.fullmatch(r"-?\d+(?:\.\d+)?\s*일", text):
+        text = "출근 월 " + text
+    if not pending and missing == "transfers" and re.fullmatch(r"\d+\s*(?:번|회)", text):
+        text = "환승 " + text
     # A shorthand is only proposed, never silently converted to won.
     shorthand = re.fullmatch(r"(\d+)\s*/\s*(\d+)", text)
     if shorthand:
