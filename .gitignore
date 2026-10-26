@@ -42,3 +42,6 @@ data/indexes/*
 .DS_Store
 Thumbs.db
 *.swp
+
+# Grafly's local graph cache — regenerable, not committed (run `grafly build`).
+/.grafly/
